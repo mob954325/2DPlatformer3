@@ -17,24 +17,28 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
 {
     PlayerInput input;
     AttackArea attackArea;
+    Vector2 attackLocalPosition;
 
     Rigidbody2D rigid2d;
     SpriteRenderer spriteRenderer;
     Animator anim;
 
-    PlayerState state;
+    [SerializeField] PlayerState state;
     PlayerState State
     {
         get => state;
         set
         {
+            if (state == value) return;
+
             StateEnd(state);
             state = value;
+
+            rigid2d.linearVelocity = new Vector2(0.0f, rigid2d.linearVelocity.y); // 이동 정지
             StateStart(state);
         }
     }
 
-    private Vector2 lastInputVec = Vector2.zero;
     private float stateTimer = 0f;
     private int attackCount = 1;
 
@@ -66,6 +70,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         set
         {
             currentHp = Mathf.Clamp(value, 0.0f, MaxHp);
+            State = PlayerState.Hit;
 
             if(IsDead)
             {
@@ -80,11 +85,12 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     public Action OnHitPerformed { get; set; }
     public Action OnDeadPerformed { get; set; }
 
-    private float rollPower = 3f;
+    private float rollPower = 7f;
     private float speed = 5f;
 
     bool isRolling = false;
     bool isAttacking = false;
+    bool isHit = false;
 
     private void Start()
     {
@@ -95,6 +101,11 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         attackArea = GetComponentInChildren<AttackArea>();
 
         attackArea.OnActiveAttackArea += (target, _) => { OnAttack(target); };
+
+        attackArea.SetEnableCollider(false);
+        attackLocalPosition = attackArea.transform.localPosition;
+
+        Initialize(); // 임시
     }
 
     private void FixedUpdate()
@@ -108,19 +119,22 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         AnimationUpdate();        
     }
 
+    private void Initialize()
+    {
+        Hp = maxHp;
+        State = PlayerState.Idle;
+    }
+
     private void KeyUpdate()
     {
-        if (input.IsRoll && !isRolling)
-        {
-            State = PlayerState.Roll;
-        }
+        if (IsDead || isHit) return;
 
-        if (input.IsAttack && !isAttacking)
+        if (input.IsAttack && !isAttacking && !isRolling)
         {
             State = PlayerState.Attack;
         }
 
-        if (!isAttacking && !isRolling)
+        if (!isAttacking && !isRolling) //
         {
             if (input.InputVec.x != 0)
             {
@@ -135,7 +149,12 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
 
     private void AnimationUpdate()
     {
-        spriteRenderer.flipX = input.InputVec.x < 0f;
+        if (IsDead) return;
+
+        if(input.InputVec.x != 0.0f)
+        {
+            spriteRenderer.flipX = input.InputVec.x < 0f;
+        }
     }
 
     private void StateStart(PlayerState state)
@@ -236,31 +255,32 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     {
         isRolling = true;
         anim.Play("Roll", 0);
-        if(input.InputVec.x != 0f) rigid2d.AddForce(input.InputVec * rollPower, ForceMode2D.Impulse);
-        else rigid2d.AddForce(lastInputVec * rollPower, ForceMode2D.Impulse);
+        rigid2d.AddForce(input.InputVec * rollPower, ForceMode2D.Impulse);
     }
 
     private void HitStateStart()
     {
+        isHit = true;
         anim.Play("Hit", 0);
     }
 
     private void AttackStateStart()
     {
         isAttacking = true;
-        anim.Play("Attack" + attackCount, 0);
-        attackCount++;
-
-        if (attackCount > 3) attackCount = 1;
-
+        attackArea.SetEnableCollider(true);
         AttackCooldown = MaxAttackCooldown;
 
-        Vector3 detectGameObject = attackArea.gameObject.transform.position; // 임시
+        anim.Play("Attack" + attackCount, 0);
+        attackCount++;
+        if (attackCount > 3) attackCount = 1;
+
+        UpdateAttackAreaPosition();
     }
 
     private void DeadStateStart()
     {
-        
+        anim.Play("Dead");
+        Debug.Log("플레이어 사망");
     }
     #endregion
 
@@ -273,7 +293,11 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     private void MoveState()
     {
         rigid2d.linearVelocity = new Vector2(input.InputVec.x * speed, rigid2d.linearVelocity.y);
-        lastInputVec = input.InputVec;
+
+        if (input.IsRoll && !isRolling && !isAttacking) // 움직일 때 구르기
+        {
+            State = PlayerState.Roll;
+        }
     }
 
     private void RollState()
@@ -325,32 +349,25 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     }
     private void HitStateEnd()
     {
-        
+        isHit = false;
     }
 
     private void AttackStateEnd()
     {
         isAttacking = false;
+        attackArea.SetEnableCollider(false);
     }
 
     private void DeadStateEnd()
     {
-        
+        // 사용 안함
     }
     #endregion
 
     #region Functions
     private bool CheckAnimationEnd()
     {
-        stateTimer += Time.deltaTime;
-        
-        if (stateTimer > anim.GetCurrentAnimatorClipInfo(0)[0].clip.length)
-        {
-            stateTimer = 0f;
-            return true;
-        }
-
-        return false;
+        return anim.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f;
     }
 
     public void OnAttack(IDamageable target)
@@ -360,13 +377,20 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
 
     public void TakeDamage(float damageValue)
     {
+        if (IsDead) return;
+
         Hp -= damageValue;
-        State = PlayerState.Hit;
     }
 
     public void OnDead()
     {
         State = PlayerState.Dead;
+    }
+
+    private void UpdateAttackAreaPosition()
+    {
+        if (spriteRenderer.flipX) attackArea.transform.localPosition = new Vector3(-attackLocalPosition.x, attackLocalPosition.y, 0f);
+        else attackArea.transform.localPosition = new Vector3(attackLocalPosition.x, attackLocalPosition.y, 0f);
     }
     #endregion
 }

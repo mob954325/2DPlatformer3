@@ -11,12 +11,12 @@ public class Test_02_PlayerHitAndDead : TestBase
 
     protected override void OnTest1(InputAction.CallbackContext context)
     {
-        //player.MaxHp = 10;
+        player.Hp = 10;
     }
 
     protected override void OnTest2(InputAction.CallbackContext context)
     {
-        //player.TakeDamage(damage);
+        player.TakeDamage(damage);
     }
 #endif
 }

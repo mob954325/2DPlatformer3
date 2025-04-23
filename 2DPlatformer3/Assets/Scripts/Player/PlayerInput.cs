@@ -21,7 +21,7 @@ public class PlayerInput : MonoBehaviour
         actions.Player.Move.canceled += Move_canceled;
         actions.Player.Attack.performed += Attack_performed;
         actions.Player.Attack.canceled += Attack_canceled;
-        actions.Player.Roll.performed += Roll_performed;
+        actions.Player.Roll.started += Roll_started;
         actions.Player.Roll.canceled += Roll_canceled;
     }
 
@@ -48,7 +48,7 @@ public class PlayerInput : MonoBehaviour
         isRoll = false;
     }
 
-    private void Roll_performed(UnityEngine.InputSystem.InputAction.CallbackContext obj)
+    private void Roll_started(UnityEngine.InputSystem.InputAction.CallbackContext obj)
     {
         isRoll = true;
     }

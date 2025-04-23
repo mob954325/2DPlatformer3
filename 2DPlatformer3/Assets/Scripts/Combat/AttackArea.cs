@@ -9,9 +9,13 @@ public class AttackArea : MonoBehaviour
     private Collider2D attackCollider;
     public Action<IDamageable, Transform> OnActiveAttackArea;
 
+    private void Awake()
+    {
+        attackCollider = GetComponent<Collider2D>();        
+    }
+
     private void Start()
     {
-        attackCollider = GetComponent<Collider2D>();
         attackCollider.isTrigger = true;
     }
 
@@ -22,5 +26,10 @@ public class AttackArea : MonoBehaviour
         {
             OnActiveAttackArea?.Invoke(damageable, collision.transform);
         }
+    }
+
+    public void SetEnableCollider(bool value)
+    {
+        attackCollider.enabled = value;
     }
 }
