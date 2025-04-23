@@ -106,9 +106,9 @@ GameObject:
   - component: {fileID: 7256747889624182650}
   - component: {fileID: 2487511754842571871}
   - component: {fileID: 3987565779903247068}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -141,6 +141,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b53eafdff8b2c8b4a8577bb85d7ce6bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  state: 0
 --- !u!114 &2009176358536283102
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -280,7 +281,7 @@ Rigidbody2D:
   m_Interpolate: 0
   m_SleepingMode: 1
   m_CollisionDetection: 0
-  m_Constraints: 0
+  m_Constraints: 4
 --- !u!95 &3987565779903247068
 Animator:
   serializedVersion: 7

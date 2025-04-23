@@ -69,13 +69,20 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         get => currentHp;
         set
         {
+            float prevHp = currentHp;
             currentHp = Mathf.Clamp(value, 0.0f, MaxHp);
-            State = PlayerState.Hit;
+            OnHpChange?.Invoke();
 
             if(IsDead)
             {
                 OnDead();
             }
+            else if(prevHp - currentHp > 0)
+            {
+                State = PlayerState.Hit;
+            }
+
+            Debug.Log($"Player {Hp}");
         }
     }
 
@@ -261,6 +268,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     private void HitStateStart()
     {
         isHit = true;
+        OnHitPerformed?.Invoke();
         anim.Play("Hit", 0);
     }
 
@@ -280,7 +288,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     private void DeadStateStart()
     {
         anim.Play("Dead");
-        Debug.Log("플레이어 사망");
+        OnDeadPerformed?.Invoke();
     }
     #endregion
 

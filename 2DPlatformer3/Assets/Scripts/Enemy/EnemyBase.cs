@@ -9,6 +9,7 @@ public enum EnemyState
     Idle,
     Chasing,
     Attack,
+    Hit,
     Dead,
 }
 
@@ -19,7 +20,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable, IPoolable
     protected SpriteRenderer spriteRenderer;
     protected Rigidbody2D rigid2d;
 
-    private EnemyState currentState;
+    [SerializeField] private EnemyState currentState;
     public EnemyState CurrentState
     {
         get => currentState;
@@ -27,8 +28,13 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable, IPoolable
         {
             if (currentState == value) return; // 중복 방지
 
+            StateEnd(currentState);
             currentState = value;
-            InitializeState(currentState);
+
+            rigid2d.linearVelocity = Vector2.zero;
+            StateStart(currentState);
+
+            Debug.Log($"{currentState.ToString()}");
         }
     }
 
@@ -121,6 +127,32 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable, IPoolable
 
     // State ---------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// 상태 변경 후 상태 진입 전 초기화 함수 호출
+    /// </summary>
+    /// <param name="state">변경할 상태</param>
+    public void StateStart(EnemyState state)
+    {
+        switch (state)
+        {
+            case EnemyState.Idle:
+                OnIdleStateStart();
+                break;
+            case EnemyState.Chasing:
+                OnChaseStateStart();
+                break;
+            case EnemyState.Attack:
+                OnAttackStateStart();
+                break;
+            case EnemyState.Hit:
+                OnHitStateStart();
+                break;
+            case EnemyState.Dead:
+                OnDeadStateStart();
+                break;
+        }
+    }
+
     public void UpdateByState()
     {
         switch (CurrentState)
@@ -134,44 +166,57 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable, IPoolable
             case EnemyState.Attack:
                 OnAttackState();
                 break;
+            case EnemyState.Hit:
+                OnHitState();
+                break;
             case EnemyState.Dead:
                 OnDeadState();
                 break;
         }
     }
 
-    /// <summary>
-    /// 상태 변경 후 상태 진입 전 초기화 함수 호출
-    /// </summary>
-    /// <param name="state">변경할 상태</param>
-    public void InitializeState(EnemyState state)
+
+
+    private void StateEnd(EnemyState currentState)
     {
-        switch (state)
+        switch (currentState)
         {
             case EnemyState.Idle:
-                OnIdleStateStart();
+                OnIdleStateEnd();
                 break;
             case EnemyState.Chasing:
-                OnChaseStateStart();
+                OnChaseStateEnd();
                 break;
             case EnemyState.Attack:
-                OnAttackStateStart();
+                OnAttackStateEnd();
+                break;
+            case EnemyState.Hit:
+                OnHitStateEnd();
                 break;
             case EnemyState.Dead:
-                OnDeadStateStart();
+                OnDeadStateEnd();
                 break;
         }
     }
 
+
     protected virtual void OnIdleStateStart() { }
     protected virtual void OnChaseStateStart() { }
     protected virtual void OnAttackStateStart() { }
+    protected virtual void OnHitStateStart() { }
     protected virtual void OnDeadStateStart() { }
 
     protected virtual void OnIdleState() { } 
     protected virtual void OnChasingState() { }
     protected virtual void OnAttackState() { }
+    protected virtual void OnHitState() { }
     protected virtual void OnDeadState() { } // 상태 업데이트 용
+
+    protected virtual void OnIdleStateEnd() { }
+    protected virtual void OnChaseStateEnd() { }
+    protected virtual void OnAttackStateEnd() { }
+    protected virtual void OnHitStateEnd() { }
+    protected virtual void OnDeadStateEnd() { }
 
     // IDamageable ---------------------------------------------------------------------------------------
 

@@ -5,6 +5,9 @@ using UnityEngine;
 using UnityEditor;
 
 
+///
+///
+
 /// <summary>
 /// 모든 전투하는 적이 공통으로 받는 클래스
 /// </summary>
@@ -55,9 +58,6 @@ public class EnemyCombat : EnemyBase, IAttacker
     /// </summary>
     protected bool IsAttack = false;
 
-    protected float attackDelayTimer = 0.0f;
-    protected float maxAttackDelayTime = 1.0f;
-
     public Action<IDamageable> OnAttackPerformed { get; set; }
 
     protected override void Start()
@@ -81,51 +81,39 @@ public class EnemyCombat : EnemyBase, IAttacker
 
     protected override void Update()
     {
-        HandleCooldown();
         base.Update();
+        HandleCooldown();
     }
 
     protected override void SetData(EnemyDataSO data)
     {
+        base.SetData(data);
         if(data.isCombat)
         {
             sightAngle = data.sightAngle;
             sightRadius = data.sightRange;
             attackRange = data.attackRange;
             speed = data.moveSpeed;
-            attackRange = data.damage;
+            attackRange = data.attackRange;
             maxAttackCooldown = data.attackCooldown;
         }
-        base.SetData(data);
     }
 
     // Functions ---------------------------------------------------------------------------------------
 
     /// <summary>
-    /// Chasing Update 문 | base 갱신할 때 마지막에 갱신하기
+    /// Chasing Update 문
     /// </summary>
     protected override void OnChasingState()
     {
-        UpdateChasingTarget();
-
-        if(targetTransform != null)
-        {
-            distanceToTarget = Vector2.Distance(targetTransform.position, (transform.position));
-        }
         base.OnChasingState();
     }
 
     /// <summary>
-    /// Attack Update 문 | base 갱신할 때 마지막 갱신하기
+    /// Attack Update 문
     /// </summary>
     protected override void OnAttackState()
     {
-        UpdateAttackTarget();
-
-        if(targetTransform != null)
-        {
-            distanceToTarget = Vector2.Distance(targetTransform.position, (transform.position));
-        }
         base.OnAttackState();
     }
 
@@ -140,23 +128,12 @@ public class EnemyCombat : EnemyBase, IAttacker
 
         this.targetTransform = targetTransform;
         this.target = target;
-
-        // 시야각에 있는지 확인
-        if (IsInsight(targetTransform))
-        {
-            CurrentState = EnemyState.Chasing;
-        }
-        else
-        {
-            this.targetTransform = null;
-            this.target = null;
-        }
     }
 
     /// <summary>
     /// target이 시야에 들어왔는지 확인
     /// </summary>
-    bool IsInsight(Transform target)
+    public bool IsInsight(Transform target)
     {
         if (targetTransform == null) return false ;
 
@@ -166,53 +143,18 @@ public class EnemyCombat : EnemyBase, IAttacker
         return dot > Mathf.Cos(sightAngle * 0.5f * Mathf.Deg2Rad);
     }
 
-    Vector2 GetFactingDirection()
+    protected Vector2 GetFactingDirection()
     {
         return isFacingLeft ? Vector2.left : Vector2.right;
     }
 
-    void UpdateChasingTarget()
-    {
-        if (targetTransform == null || ShouldStopChase())
-        {
-            // 타겟이 범위에 벗어남
-            targetTransform = null;
-            target = null;
-            CurrentState = EnemyState.Idle;
-        }
-        else if(distanceToTarget < attackRange)
-        {
-            CurrentState = EnemyState.Attack;
-        }
-    }
-
-    bool ShouldStopChase()
+    protected bool ShouldStopChase()
     {
         if (targetTransform == null) return false;
 
         Vector2 dir = targetTransform.position - transform.position;
 
         return dir.sqrMagnitude > sightRadius * sightRadius;
-    }
-
-    void UpdateAttackTarget()
-    {
-        if (targetTransform != null)
-        {
-            // 사거리안에 플레이어가 들어옴
-            if(distanceToTarget < attackRange)
-            {
-                OnAttack(target);
-            }
-            else
-            {
-                CurrentState = EnemyState.Chasing;
-            }
-        }
-        else // 시야 밖으로 벗어남
-        {
-            CurrentState = EnemyState.Idle;
-        }
     }
 
     /// <summary>
