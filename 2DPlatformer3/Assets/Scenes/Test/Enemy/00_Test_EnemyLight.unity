@@ -380,7 +380,7 @@ Rigidbody2D:
   m_Interpolate: 0
   m_SleepingMode: 1
   m_CollisionDetection: 0
-  m_Constraints: 0
+  m_Constraints: 4
 --- !u!212 &1402954965
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -465,6 +465,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   data: {fileID: 11400000, guid: de10375d87c32fc4fabaf1c87955eb55, type: 2}
+  currentState: 0
 --- !u!95 &1402954968
 Animator:
   serializedVersion: 7
@@ -780,14 +781,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6358437709537271604, guid: 6dd6c897596cbb94ab41f3b954ee0d9f, type: 3}
       propertyPath: m_Name
-      value: Player
-      objectReference: {fileID: 0}
-    - target: {fileID: 6358437709537271604, guid: 6dd6c897596cbb94ab41f3b954ee0d9f, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 6358437709537271604, guid: 6dd6c897596cbb94ab41f3b954ee0d9f, type: 3}
-      propertyPath: m_TagString
       value: Player
       objectReference: {fileID: 0}
     m_RemovedComponents: []
