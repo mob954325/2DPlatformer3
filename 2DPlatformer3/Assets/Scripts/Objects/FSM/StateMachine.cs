@@ -24,7 +24,7 @@ public class StateMachine : MonoBehaviour
         }
     }
 
-    [SerializeField] private List<StateBase> StateList;
+    private List<StateBase> StateList;
 
     bool isInitialzed = false;
     bool isStateChanging = false;
@@ -50,11 +50,18 @@ public class StateMachine : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 상태 스크립트 추가 함수
-    /// </summary>
-    public void AddState(StateBase state)
+    private void FixedUpdate()
     {
-        StateList.Add(state);
+        if (!isInitialzed) return;
+
+        if (!isStateChanging)
+        {
+            CurrentState.StateFixedUpdate();
+        }
+    }
+
+    public void StateChange(int listIndex)
+    {
+        CurrentState = StateList[listIndex];
     }
 }

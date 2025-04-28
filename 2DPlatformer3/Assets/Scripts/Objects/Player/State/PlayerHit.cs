@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class PlayerDead : StateBase
+public class PlayerHit : StateBase
 {
     Player player;
 
@@ -11,17 +11,23 @@ public class PlayerDead : StateBase
 
     public override void StateEnter()
     {
-        Debug.Log("Player Dead Enter");
-        player.PlayAnimation("Dead");
+        Debug.Log("Player Hit Enter");
+        player.PlayAnimation("Hit");
     }
 
     public override void StateExit()
     {
-        Debug.Log("Player Dead Exit");
+        Debug.Log("Player Hit Exit");        
     }
 
     public override void StateUpdate()
     {
+        Debug.Log("Player Hit Update");
+        if (player.CheckAnimationEnd())
+        {
+            Debug.Log("Player Hit End");
+            player.State = PlayerState.Idle;
+        }
     }
 
     public override void StateFixedUpdate()

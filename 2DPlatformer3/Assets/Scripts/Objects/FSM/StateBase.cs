@@ -17,6 +17,11 @@ public abstract class StateBase : MonoBehaviour
     public abstract void StateUpdate();
 
     /// <summary>
+    /// 상태의 물리 업데이트 함수
+    /// </summary>
+    public abstract void StateFixedUpdate();
+
+    /// <summary>
     /// 상태 변경 시 변경 전 호출되는 함수
     /// </summary>
     public abstract void StateExit();

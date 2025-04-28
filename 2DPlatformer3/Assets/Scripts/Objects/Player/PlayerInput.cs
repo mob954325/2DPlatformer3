@@ -4,7 +4,7 @@ public class PlayerInput : MonoBehaviour
 {
     private PlayerInputActions actions;
 
-    Vector2 inputVec;
+    [SerializeField] Vector2 inputVec;
     public Vector2 InputVec { get => inputVec; }
 
     bool isAttack = false;

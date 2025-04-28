@@ -5,29 +5,36 @@ using UnityEngine;
 /// <summary>
 /// 플레이어 상태 ( Idle, Move, Attack, Dead )
 /// </summary>
-enum PlayerState
+public enum PlayerState
 {
     Idle = 0,
     Move,
     Attack,
     Dead,
+
+    Rolling,
+    Hit,
 }
+
+// state에서 Player가 사용하는 변수 빼기
 
 [RequireComponent(typeof(PlayerInput))]
 public class Player : MonoBehaviour, IAttacker, IDamageable
 {
-    PlayerInput input;
-    StateMachine stateMachine;
+    private PlayerInput input;
+    public PlayerInput Input { get => input; }
+    private StateMachine stateMachine;
 
     //AttackArea attackArea;
     //Vector2 attackLocalPosition;
 
-    Rigidbody2D rigid2d;
-    SpriteRenderer spriteRenderer;
-    Animator anim;
+    private Rigidbody2D rigid2d;
+    private SpriteRenderer spriteRenderer;
+    private Animator animator;
+
 
     [SerializeField] PlayerState state;
-    PlayerState State
+    public PlayerState State
     {
         get => state;
         set
@@ -35,11 +42,9 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
             if (state == value) return; // 중복 상태 변환 무시
 
             state = value;
+            stateMachine.StateChange((int)state);
         }
     }
-
-    private float stateTimer = 0f;
-    private int attackCount = 1;
 
     private float attackDamage = 1f;
     public float AttackDamage => attackDamage;
@@ -101,9 +106,10 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     private void Awake()
     {
         input = GetComponent<PlayerInput>();
-        anim = GetComponent<Animator>();
+        animator = GetComponent<Animator>();
         rigid2d = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        stateMachine = GetComponentInChildren<StateMachine>();
         //attackArea = GetComponentInChildren<AttackArea>();
     }
 
@@ -112,25 +118,58 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         Initialize();
     }
 
-    private void FixedUpdate()
-    {   
-    }
-
-    private void Update()
-    {    
-    }
-
     private void Initialize()
     {
         Hp = maxHp;
     }
 
     #region Functions
-    private bool CheckAnimationEnd()
+
+    public void PlayAnimation(string name)
     {
-        return anim.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f;
+        animator.Play(name, 0);
     }
 
+    public bool CheckAnimationEnd()
+    {
+        return animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f;
+    }
+
+    public void SpriteFlip(bool isLeft)
+    {
+        spriteRenderer.flipX = isLeft;
+    }
+
+    #endregion
+
+    #region Move
+    public void OnMove()
+    {
+        if(input.InputVec.x != 0)
+        {
+            rigid2d.linearVelocity = new Vector2(input.InputVec.x * speed, rigid2d.linearVelocity.y);
+        }
+    }
+
+    public void OnRoll()
+    {
+        if(input.InputVec.x != 0)
+        {
+            rigid2d.linearVelocity = new Vector2(input.InputVec.x * rollPower, rigid2d.linearVelocity.y);
+        }
+    }
+
+    public void MoveStop()
+    {
+        rigid2d.linearVelocity = new Vector2(0f, rigid2d.linearVelocity.y);
+    }
+    #endregion
+
+    #region Attack
+
+    #endregion
+
+    #region Interface
     public void OnAttack(IDamageable target)
     {
         target.TakeDamage(AttackDamage);
@@ -141,6 +180,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         if (IsDead) return;
 
         Hp -= damageValue;
+        State = PlayerState.Hit;
     }
 
     public void OnDead()
