@@ -1,10 +1,11 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class Test_00_Bullet : TestBase
 {
+#if UNITY_EDITOR
     public GameObject bulletObject;
 
     public Transform spawnPosition;
@@ -17,4 +18,5 @@ public class Test_00_Bullet : TestBase
             bullet.Initialize(null, this.transform.right, 10f, 1, 3, 0.25f, 10f);
         }
     }
+#endif
 }
