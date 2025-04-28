@@ -23,9 +23,6 @@ public class PlayerIdle : StateBase
     public override void StateUpdate()
     {
         Debug.Log("Player Idle Update");
-
-        if (player.Input.IsAttack) player.State = PlayerState.Attack;
-        if (player.Input.InputVec.x != 0) player.State = PlayerState.Move;
     }
 
     public override void StateFixedUpdate()

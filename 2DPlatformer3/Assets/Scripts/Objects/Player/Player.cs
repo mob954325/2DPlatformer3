@@ -17,6 +17,7 @@ public enum PlayerState
 }
 
 // state에서 Player가 사용하는 변수 빼기
+// 1. [0428] - 각 행동별 bool값 만들고 해당 스크립트에서 애니메이션 끝나면 idle상태로 돌아가게 만들기
 
 [RequireComponent(typeof(PlayerInput))]
 public class Player : MonoBehaviour, IAttacker, IDamageable
@@ -34,7 +35,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
 
 
     [SerializeField] PlayerState state;
-    public PlayerState State
+    private PlayerState State
     {
         get => state;
         set
@@ -81,10 +82,6 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
             {
                 OnDead();
             }
-            else if(prevHp - currentHp > 0)
-            {
-                //State = PlayerState.Hit;
-            }
 
             Debug.Log($"Player {Hp}");
         }
@@ -99,9 +96,10 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     private float rollPower = 7f;
     private float speed = 5f;
 
-    bool isRolling = false;
-    bool isAttacking = false;
-    bool isHit = false;
+    // flags
+    private bool isAttacking = false;
+    private bool isRolling = false;
+
 
     private void Awake()
     {
@@ -118,12 +116,43 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         Initialize();
     }
 
-    private void Initialize()
+    private void Update()
     {
-        Hp = maxHp;
+        UpdatePlayerState();
     }
 
     #region Functions
+    private void UpdatePlayerState()
+    {
+        // 공격
+        if (input.IsAttack)
+        {
+            State = PlayerState.Attack;
+        }
+
+        // 구르기
+        if (input.IsRoll)
+        {
+            State = PlayerState.Rolling;
+        }
+
+        if(input.InputVec.x == 0)
+        {
+        // 대기
+            State = PlayerState.Idle;
+        }
+        else
+        {
+        // 이동
+            State = PlayerState.Move;
+        }
+    }
+
+    public void Initialize()
+    {
+        Hp = maxHp;
+        State = PlayerState.Idle;
+    }
 
     public void PlayAnimation(string name)
     {
@@ -138,6 +167,11 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     public void SpriteFlip(bool isLeft)
     {
         spriteRenderer.flipX = isLeft;
+    }
+
+    public void SetStateIdle()
+    {
+        State = PlayerState.Idle;
     }
 
     #endregion

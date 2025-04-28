@@ -30,7 +30,10 @@ public class PlayerAttack : StateBase
 
         if(player.CheckAnimationEnd())
         {
-            if(!player.Input.IsAttack) player.State = PlayerState.Idle;
+            if(!player.Input.IsAttack)
+            {
+                player.SetStateIdle();
+            }
             else
             {
                 attackCount = attackCount == maxAttackCount + 1 ? 1 : ++attackCount;

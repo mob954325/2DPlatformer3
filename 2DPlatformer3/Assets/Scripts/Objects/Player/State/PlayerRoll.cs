@@ -31,7 +31,7 @@ public class PlayerRoll : StateBase
         {
             Debug.Log("Player Roll End");
             isRolling = false;
-            player.State = PlayerState.Idle;
+            player.SetStateIdle();
         }
     }
 

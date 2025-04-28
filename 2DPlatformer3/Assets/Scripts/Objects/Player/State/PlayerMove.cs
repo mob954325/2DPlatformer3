@@ -25,14 +25,7 @@ public class PlayerMove : StateBase
     {
         Debug.Log("Player Move Update");
 
-        if (player.Input.IsAttack) player.State = PlayerState.Attack;
-        if (player.Input.IsRoll) player.State = PlayerState.Rolling;
-
-        if (player.Input.InputVec.x == 0) player.State = PlayerState.Idle;
-        else // Move
-        {
-            player.SpriteFlip(player.Input.InputVec.x < 0);
-        }
+        player.SpriteFlip(player.Input.InputVec.x < 0);
     }
 
     public override void StateFixedUpdate()

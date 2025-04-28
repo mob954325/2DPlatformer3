@@ -26,7 +26,7 @@ public class PlayerHit : StateBase
         if (player.CheckAnimationEnd())
         {
             Debug.Log("Player Hit End");
-            player.State = PlayerState.Idle;
+            player.SetStateIdle();
         }
     }
 
