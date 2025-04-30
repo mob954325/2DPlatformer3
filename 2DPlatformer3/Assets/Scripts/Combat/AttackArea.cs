@@ -3,22 +3,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// IDamageable을 가진 오브젝트 정보
-/// </summary>
-public struct DamageableInfo
-{
-    public GameObject targetObj;
-    public IDamageable target;
-}
-
 [RequireComponent(typeof(Collider2D))]
 public class AttackArea : MonoBehaviour
 {
     private Collider2D attackCollider;
-
-    DamageableInfo info;
-    public DamageableInfo Info { get => info; }
+    private List<IDamageable> targetlist = new List<IDamageable>();
+    public List<IDamageable> TargetList { get => targetlist; }
 
     public void Initialize()
     {
@@ -32,19 +22,7 @@ public class AttackArea : MonoBehaviour
         collision.gameObject.TryGetComponent(out IDamageable damageable);
         if (damageable != null && damageable != GetComponentInParent<IDamageable>())
         {
-            info.target = damageable;
-            info.targetObj = collision.gameObject;
-        }
-    }
-
-    private void OnTriggerStay2D(Collider2D collision)
-    {
-        // target 추가
-        collision.gameObject.TryGetComponent(out IDamageable damageable);
-        if (damageable != null && damageable != GetComponentInParent<IDamageable>())
-        {
-            info.target = damageable;
-            info.targetObj = collision.gameObject;
+            targetlist.Add(damageable);
         }
     }
 
@@ -54,8 +32,7 @@ public class AttackArea : MonoBehaviour
         collision.gameObject.TryGetComponent(out IDamageable damageable);
         if (damageable != null && damageable != GetComponentInParent<IDamageable>())
         {
-            info.target = null;
-            info.targetObj = null;
+            targetlist.Remove(damageable);
         }
     }
 

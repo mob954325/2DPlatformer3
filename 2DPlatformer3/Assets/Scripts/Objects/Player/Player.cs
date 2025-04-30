@@ -301,28 +301,40 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     #endregion
 
     #region Attack
-    public IDamageable ActiveAttackArea()
+    public void ActiveAttackArea()
     {
-        IDamageable target;
         if (spriteRenderer.flipX)
         {
             attackAreas[1].SetEnableCollider(true);
-
-            target = attackAreas[1].Info.target;
         }
         else
         {
             attackAreas[0].SetEnableCollider(true);      
-            target = attackAreas[0].Info.target;
         }
-
-        return target;
     }
 
     public void DeactiveAttackArea()
     {
         attackAreas[1].SetEnableCollider(false);
         attackAreas[0].SetEnableCollider(false);
+    }
+
+    public void TryAttack()
+    {
+        if (spriteRenderer.flipX)
+        {
+            foreach (IDamageable target in attackAreas[1].TargetList)
+            {
+                OnAttack(target);
+            }
+        }
+        else
+        {
+            foreach (IDamageable target in attackAreas[0].TargetList)
+            {
+                OnAttack(target);
+            }
+        }
     }
     #endregion
 
