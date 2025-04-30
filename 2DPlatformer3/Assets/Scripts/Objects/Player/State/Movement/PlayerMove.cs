@@ -2,7 +2,7 @@
 
 public class PlayerMove : StateBase
 {
-    Player player;
+    protected Player player;
 
     private void Awake()
     {
@@ -11,21 +11,23 @@ public class PlayerMove : StateBase
 
     public override void StateEnter()
     {
-        Debug.Log("Player Move Enter");
-        player.PlayAnimation("Run");
+        //Debug.Log("Player Move Enter");
+        player.PlayAnimation("Move");
     }
 
     public override void StateExit()
     {
-        Debug.Log("Player Move Exit");
+        //Debug.Log("Player Move Exit");
         player.MoveStop();
     }
 
     public override void StateUpdate()
     {
-        Debug.Log("Player Move Update");
-
-        player.SpriteFlip(player.Input.InputVec.x < 0);
+        //Debug.Log("Player Move Update");
+        if(player.Input.InputVec.x != 0)
+        {
+            player.SpriteFlip(player.Input.InputVec.x < 0);
+        }
     }
 
     public override void StateFixedUpdate()

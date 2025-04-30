@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class PlayerIdle : StateBase
+public class PlayerHit : StateBase
 {
     Player player;
 
@@ -11,18 +11,23 @@ public class PlayerIdle : StateBase
 
     public override void StateEnter()
     {
-        Debug.Log("Player Idle Enter");
-        player.PlayAnimation("Idle");
+        //Debug.Log("Player Hit Enter");
+        player.PlayAnimation("Hit");
     }
 
     public override void StateExit()
     {
-        Debug.Log("Player Idle Exit");
+        //Debug.Log("Player Hit Exit");        
     }
 
     public override void StateUpdate()
     {
-        Debug.Log("Player Idle Update");
+        //Debug.Log("Player Hit Update");
+        if (player.CheckAnimationEnd())
+        {
+            //Debug.Log("Player Hit End");
+            player.SetActionState(PlayerActionState.None);
+        }
     }
 
     public override void StateFixedUpdate()

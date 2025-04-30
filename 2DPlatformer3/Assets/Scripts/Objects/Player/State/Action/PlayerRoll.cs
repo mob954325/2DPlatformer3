@@ -4,8 +4,6 @@ public class PlayerRoll : StateBase
 {
     Player player;
 
-    private bool isRolling = false; 
-
     private void Awake()
     {
         player = GetComponentInParent<Player>();
@@ -13,34 +11,30 @@ public class PlayerRoll : StateBase
 
     public override void StateEnter()
     {
-        Debug.Log("Player Roll Enter");
+        //Debug.Log("Player Roll Enter");
         player.PlayAnimation("Roll");
+        player.OnRoll();
     }
 
     public override void StateExit()
     {
-        Debug.Log("Player Roll Exit");
+        //Debug.Log("Player Roll Exit");
         player.MoveStop();
     }
 
     public override void StateUpdate()
     {
-        Debug.Log("Player Roll Update");
+        //Debug.Log("Player Roll Update");
 
         if (player.CheckAnimationEnd())
         {
-            Debug.Log("Player Roll End");
-            isRolling = false;
-            player.SetStateIdle();
+            //Debug.Log("Player Roll End");
+            player.SetActionState(PlayerActionState.None);
         }
     }
 
     public override void StateFixedUpdate()
     {
-        if (!isRolling)
-        {
-            isRolling = true;
-            player.OnRoll();
-        }
+        //Debug.Log("Player Roll FixedUpdate");
     }
 }

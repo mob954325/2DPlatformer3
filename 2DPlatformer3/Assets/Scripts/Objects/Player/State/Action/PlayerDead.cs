@@ -11,13 +11,13 @@ public class PlayerDead : StateBase
 
     public override void StateEnter()
     {
-        Debug.Log("Player Dead Enter");
+        //Debug.Log("Player Dead Enter");
         player.PlayAnimation("Dead");
     }
 
     public override void StateExit()
     {
-        Debug.Log("Player Dead Exit");
+        //Debug.Log("Player Dead Exit");
     }
 
     public override void StateUpdate()

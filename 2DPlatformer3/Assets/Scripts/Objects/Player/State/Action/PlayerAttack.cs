@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using UnityEditor;
+using UnityEngine;
 
 public class PlayerAttack : StateBase
 {
@@ -14,30 +15,35 @@ public class PlayerAttack : StateBase
 
     public override void StateEnter()
     {
-        Debug.Log("Player Attack Enter");
+        //Debug.Log("Player Attack Enter");
+        player.MoveStop();
         player.PlayAnimation("Attack" + attackCount);
     }
 
     public override void StateExit()
     {
-        Debug.Log("Player Attack Exit");
+        //Debug.Log("Player Attack Exit");
         attackCount = 1;
     }
 
     public override void StateUpdate()
     {
-        Debug.Log("Player Attack Update");
+        //Debug.Log("Player Attack Update");
 
         if(player.CheckAnimationEnd())
         {
             if(!player.Input.IsAttack)
             {
-                player.SetStateIdle();
+                player.SetActionState(PlayerActionState.None);
             }
             else
             {
-                attackCount = attackCount == maxAttackCount + 1 ? 1 : ++attackCount;
-                player.PlayAnimation("Attack" + attackCount);
+                if(attackCount == maxAttackCount + 1)
+                {
+                    attackCount = 1;
+                }
+
+                player.PlayAnimation("Attack" + attackCount++);
             }
         }
     }

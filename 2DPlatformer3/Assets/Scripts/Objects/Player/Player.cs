@@ -1,30 +1,36 @@
-﻿using System;
+﻿using NUnit.Framework;
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// 플레이어 상태 ( Idle, Move, Attack, Dead )
 /// </summary>
-public enum PlayerState
+public enum PlayerMovementState
 {
     Idle = 0,
     Move,
-    Attack,
-    Dead,
-
-    Rolling,
-    Hit,
+    Jump,
+    Fall,
 }
 
-// state에서 Player가 사용하는 변수 빼기
-// 1. [0428] - 각 행동별 bool값 만들고 해당 스크립트에서 애니메이션 끝나면 idle상태로 돌아가게 만들기
+public enum PlayerActionState
+{
+    None = 0,
+    Attack,
+    Rolling,
+    Hit,
+    Dead,
+}
 
 [RequireComponent(typeof(PlayerInput))]
-public class Player : MonoBehaviour, IAttacker, IDamageable
+public class Player : MonoBehaviour, IAttacker, IDamageable, IAnimatable
 {
     private PlayerInput input;
     public PlayerInput Input { get => input; }
-    private StateMachine stateMachine;
+    private StateMachine movementStateMachine;
+    private StateMachine actionStateMachine;
 
     //AttackArea attackArea;
     //Vector2 attackLocalPosition;
@@ -32,21 +38,46 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     private Rigidbody2D rigid2d;
     private SpriteRenderer spriteRenderer;
     private Animator animator;
+    private Transform groundCheckTransform;
+    private LayerMask groundLayer;
+    private float groundCheckRadius = 0.12f;
 
 
-    [SerializeField] PlayerState state;
-    private PlayerState State
+    [SerializeField] PlayerMovementState moveState;
+    private PlayerMovementState Movestate
     {
-        get => state;
+        get => moveState;
         set
         {
-            if (state == value) return; // 중복 상태 변환 무시
+            if (moveState == value) return; // 중복 상태 변환 무시
 
-            state = value;
-            stateMachine.StateChange((int)state);
+            moveState = value;
+            movementStateMachine.StateChange((int)moveState);
         }
     }
 
+    [SerializeField] PlayerActionState actionState;
+    private PlayerActionState ActionState
+    {
+        get => actionState;
+        set
+        {
+            if (actionState == value) return;
+
+            actionState = value;
+
+            if(actionState != PlayerActionState.None)
+            {
+                actionStateMachine.StateChange((int)(actionState - 1)); // None 제외
+            }
+        }
+    }
+
+    private float rollPower = 7f;
+    private float jumpPower = 7f;
+    private float speed = 5f;
+
+    #region IAttackable
     private float attackDamage = 1f;
     public float AttackDamage => attackDamage;
 
@@ -63,8 +94,11 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
 
     private bool canAttack = true;
     public bool CanAttack { get => canAttack; set => canAttack = value; }
-    public Action<IDamageable> OnAttackPerformed { get; set; }
 
+    public Action<IDamageable> OnAttackPerformed { get; set; }
+    #endregion
+
+    #region IDamageable
     private float maxHp = 10;
     public float MaxHp { get => maxHp; set => maxHp = value; }
 
@@ -88,18 +122,10 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     }
 
     public bool IsDead => Hp <= 0f;
-
     public Action OnHpChange { get; set; }
     public Action OnHitPerformed { get; set; }
     public Action OnDeadPerformed { get; set; }
-
-    private float rollPower = 7f;
-    private float speed = 5f;
-
-    // flags
-    private bool isAttacking = false;
-    private bool isRolling = false;
-
+    #endregion
 
     private void Awake()
     {
@@ -107,7 +133,12 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         animator = GetComponent<Animator>();
         rigid2d = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
-        stateMachine = GetComponentInChildren<StateMachine>();
+
+        movementStateMachine = transform.GetChild(0).GetComponent<StateMachine>();
+        actionStateMachine = transform.GetChild(1).GetComponent<StateMachine>();
+
+        groundCheckTransform = transform.GetChild(2).transform;
+        groundLayer = LayerMask.GetMask("Ground");
         //attackArea = GetComponentInChildren<AttackArea>();
     }
 
@@ -124,39 +155,75 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     #region Functions
     private void UpdatePlayerState()
     {
-        // 공격
-        if (input.IsAttack)
-        {
-            State = PlayerState.Attack;
-        }
-
-        // 구르기
-        if (input.IsRoll)
-        {
-            State = PlayerState.Rolling;
-        }
-
-        if(input.InputVec.x == 0)
-        {
-        // 대기
-            State = PlayerState.Idle;
-        }
-        else
-        {
-        // 이동
-            State = PlayerState.Move;
-        }
+        CheckActionState();
+        CheckMovementState();
     }
 
     public void Initialize()
     {
+        // 데이터 초기화
         Hp = maxHp;
-        State = PlayerState.Idle;
+        Movestate = PlayerMovementState.Idle;
     }
 
-    public void PlayAnimation(string name)
+    private void CheckActionState()
     {
-        animator.Play(name, 0);
+        // 공격
+        if (input.IsAttack && ActionState != PlayerActionState.Attack)
+        {
+            ActionState = PlayerActionState.Attack;
+        }
+
+        // 구르기
+        if (input.InputVec.x != 0 && input.IsRoll && ActionState != PlayerActionState.Rolling)
+        {
+            ActionState = PlayerActionState.Rolling;
+        }
+    }
+
+    private void CheckMovementState()
+    {
+        CheckMovementTransitionBlock();
+
+        bool isGround = CheckIsGround();
+        // 점프
+        if (isGround 
+            && input.IsJump && Movestate != PlayerMovementState.Jump 
+            && ActionState == PlayerActionState.None)
+        {
+            Movestate = PlayerMovementState.Jump;
+        }
+
+        if (Movestate != PlayerMovementState.Jump && Movestate != PlayerMovementState.Fall)
+        {
+            if (input.InputVec.x == 0)
+            {
+                // 대기
+                Movestate = PlayerMovementState.Idle;
+            }
+            else
+            {
+                // 이동
+                Movestate = PlayerMovementState.Move;
+            }
+        }
+    }
+    private void CheckMovementTransitionBlock()
+    {
+        if (ActionState == PlayerActionState.Hit || ActionState == PlayerActionState.Dead)
+            return; // 입력 무시
+
+        if (ActionState != PlayerActionState.None)
+        {
+            movementStateMachine.SetTransitionBlocked(true);
+        }
+        else
+        {
+            movementStateMachine.SetTransitionBlocked(false);
+
+            // NOTE : 반드시 StateNode 이름과 Enum 타입의 이름이 동일할 것
+            PlayAnimation(Movestate.ToString());
+        }
     }
 
     public bool CheckAnimationEnd()
@@ -169,9 +236,24 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         spriteRenderer.flipX = isLeft;
     }
 
-    public void SetStateIdle()
+    public void SetMovementState(PlayerMovementState state)
     {
-        State = PlayerState.Idle;
+        Movestate = state;
+    }
+
+    public void SetActionState(PlayerActionState state)
+    {
+        ActionState = state;
+    }
+
+    public bool CheckIsGround()
+    {
+        return Physics2D.OverlapCircle(groundCheckTransform.position, groundCheckRadius, groundLayer);
+    }
+
+    public bool isFalling()
+    {
+        return rigid2d.linearVelocity.y < 0;
     }
 
     #endregion
@@ -197,29 +279,53 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     {
         rigid2d.linearVelocity = new Vector2(0f, rigid2d.linearVelocity.y);
     }
+
+    public void OnJump()
+    {
+        rigid2d.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
+    }
     #endregion
 
     #region Attack
 
     #endregion
 
-    #region Interface
+    #region IAttacker
     public void OnAttack(IDamageable target)
     {
         target.TakeDamage(AttackDamage);
     }
+    #endregion
 
+    #region IDamageable
     public void TakeDamage(float damageValue)
     {
         if (IsDead) return;
 
         Hp -= damageValue;
-        State = PlayerState.Hit;
+        ActionState = PlayerActionState.Hit;
     }
 
     public void OnDead()
     {
-        State = PlayerState.Dead;
+        ActionState = PlayerActionState.Dead;
     }
     #endregion
+
+    #region IAnimatable
+    public void PlayAnimation(string name)
+    {
+        animator.Play(Animator.StringToHash(name));
+    }
+    #endregion
+
+    void OnDrawGizmos()
+    {
+#if UNITY_EDITOR
+        if (groundCheckTransform == null) return;
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(groundCheckTransform.position, groundCheckRadius);
+#endif
+    }
 }

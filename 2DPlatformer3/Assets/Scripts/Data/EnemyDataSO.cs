@@ -1,15 +1,15 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "EnemyData_xxx", menuName = "ScriptableObject/EnemyData", order = 0)]
+[CreateAssetMenu(fileName = "EnemyData_xxx", menuName = "CustomSO/EnemyData", order = 0)]
 public class EnemyDataSO : ScriptableObject
 {
-    [Header("°øÅë ¼Ó¼º")]
+    [Header("ê³µí†µ ì†ì„±")]
     public float maxHp;
 
-    [Header("ÀüÅõ ¼Ó¼º")]
-    public bool isCombat;   // trueÀÏ ¶§ ¾Æ·¡ °ª »ç¿ë 
+    [Header("ì „íˆ¬ ì†ì„±")]
+    public bool isCombat;   // trueì¼ ë•Œ ì•„ë˜ ê°’ ì‚¬ìš© 
     public float sightAngle;
     public float sightRange;
     public float attackRange;
@@ -17,8 +17,8 @@ public class EnemyDataSO : ScriptableObject
     public int damage;
     public float attackCooldown;
 
-    [Header("¿ø°Å¸® Àü¿ë")]
-    public bool isRanged; // trueÀÏ ¶§ ¾Æ·¡ °ª »ç¿ë
+    [Header("ì›ê±°ë¦¬ ì „ìš©")]
+    public bool isRanged; // trueì¼ ë•Œ ì•„ë˜ ê°’ ì‚¬ìš©
     public float minAttackDistance;
     public float backstepSpeed;
     public GameObject bulletPrefab;

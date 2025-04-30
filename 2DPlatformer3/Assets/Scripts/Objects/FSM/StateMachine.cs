@@ -15,19 +15,20 @@ public class StateMachine : MonoBehaviour
         set
         {
             isStateChanging = true;
-            currentState.StateExit();
+            if(!isBusy) currentState.StateExit();
 
             currentState = value;
 
-            currentState.StateEnter();
+            if (!isBusy) currentState.StateEnter();
             isStateChanging = false;
         }
     }
 
     private List<StateBase> StateList;
 
-    bool isInitialzed = false;
-    bool isStateChanging = false;
+    private bool isInitialzed = false;
+    private bool isStateChanging = false;
+    private bool isBusy = false;
 
     private void Awake()
     {
@@ -35,7 +36,23 @@ public class StateMachine : MonoBehaviour
 
         // Load states
         StateList = GetComponentsInChildren<StateBase>().ToList();
-        currentState = StateList[0]; // 리스트의 첫 번째로 초기화
+    }
+
+    private void Start()
+    {
+        Initialize();
+    }
+
+    public void Initialize()
+    {
+        if(StateList.Count == 0)
+        {
+            Debug.LogWarning($"{gameObject.name} has zero states");
+        }
+        else
+        {
+            currentState = StateList[0]; // 리스트의 첫 번째로 초기화
+        }
 
         isInitialzed = true;
     }
@@ -43,6 +60,8 @@ public class StateMachine : MonoBehaviour
     private void Update()
     {
         if (!isInitialzed) return;
+
+        if (isBusy) return;
 
         if(!isStateChanging)
         {
@@ -54,6 +73,8 @@ public class StateMachine : MonoBehaviour
     {
         if (!isInitialzed) return;
 
+        if (isBusy) return;
+
         if (!isStateChanging)
         {
             CurrentState.StateFixedUpdate();
@@ -63,5 +84,10 @@ public class StateMachine : MonoBehaviour
     public void StateChange(int listIndex)
     {
         CurrentState = StateList[listIndex];
+    }
+
+    public void SetTransitionBlocked(bool value)
+    {
+        isBusy = value;
     }
 }

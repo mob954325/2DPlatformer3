@@ -13,6 +13,9 @@ public class PlayerInput : MonoBehaviour
     bool isRoll = false;
     public bool IsRoll { get => isRoll; }
 
+    bool isJump = false;
+    public bool IsJump { get => isJump; }
+
     private void Awake()
     {
         actions = new PlayerInputActions();
@@ -23,6 +26,8 @@ public class PlayerInput : MonoBehaviour
         actions.Player.Attack.canceled += Attack_canceled;
         actions.Player.Roll.started += Roll_started;
         actions.Player.Roll.canceled += Roll_canceled;
+        actions.Player.Jump.started += Jump_started;
+        actions.Player.Jump.canceled += Jump_canceled;
     }
 
     private void OnEnable()
@@ -41,6 +46,16 @@ public class PlayerInput : MonoBehaviour
         actions.Player.Move.Disable();
 
         actions.Player.Disable();
+    }
+
+    private void Jump_canceled(UnityEngine.InputSystem.InputAction.CallbackContext obj)
+    {
+        isJump = false;
+    }
+
+    private void Jump_started(UnityEngine.InputSystem.InputAction.CallbackContext obj)
+    {
+        isJump = true;
     }
 
     private void Roll_canceled(UnityEngine.InputSystem.InputAction.CallbackContext obj)
