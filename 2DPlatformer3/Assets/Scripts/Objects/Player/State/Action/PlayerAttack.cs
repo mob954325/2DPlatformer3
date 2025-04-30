@@ -15,20 +15,21 @@ public class PlayerAttack : StateBase
 
     public override void StateEnter()
     {
-        //Debug.Log("Player Attack Enter");
         player.MoveStop();
         player.PlayAnimation("Attack" + attackCount);
+
+        IDamageable target = player.ActiveAttackArea(); // NOTE 이거 작동 순서 꼬임
+        player.OnAttack(target);
     }
 
     public override void StateExit()
     {
-        //Debug.Log("Player Attack Exit");
         attackCount = 1;
+        player.DeactiveAttackArea();
     }
 
     public override void StateUpdate()
     {
-        //Debug.Log("Player Attack Update");
 
         if(player.CheckAnimationEnd())
         {
@@ -50,6 +51,5 @@ public class PlayerAttack : StateBase
 
     public override void StateFixedUpdate()
     {
-        // 사용 안함
     }
 }

@@ -3,24 +3,38 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// TODO
-// 여기서 target 관리하고 제거하기
-// 다른 곳에서 target을 관리 X
+/// <summary>
+/// IDamageable을 가진 오브젝트 정보
+/// </summary>
+public struct DamageableInfo
+{
+    public GameObject targetObj;
+    public IDamageable target;
+}
 
 [RequireComponent(typeof(Collider2D))]
 public class AttackArea : MonoBehaviour
 {
     private Collider2D attackCollider;
-    public Action<IDamageable, Transform> OnActiveAttackArea;
 
-    private void Awake()
+    DamageableInfo info;
+    public DamageableInfo Info { get => info; }
+
+    public void Initialize()
     {
         attackCollider = GetComponent<Collider2D>();        
+        attackCollider.isTrigger = true;
     }
 
-    private void Start()
+    private void OnTriggerEnter2D(Collider2D collision)
     {
-        attackCollider.isTrigger = true;
+        // target 추가
+        collision.gameObject.TryGetComponent(out IDamageable damageable);
+        if (damageable != null && damageable != GetComponentInParent<IDamageable>())
+        {
+            info.target = damageable;
+            info.targetObj = collision.gameObject;
+        }
     }
 
     private void OnTriggerStay2D(Collider2D collision)
@@ -29,17 +43,25 @@ public class AttackArea : MonoBehaviour
         collision.gameObject.TryGetComponent(out IDamageable damageable);
         if (damageable != null && damageable != GetComponentInParent<IDamageable>())
         {
-            OnActiveAttackArea?.Invoke(damageable, collision.transform);
+            info.target = damageable;
+            info.targetObj = collision.gameObject;
         }
     }
 
     private void OnTriggerExit2D(Collider2D collision)
     {
         // target 제거
+        collision.gameObject.TryGetComponent(out IDamageable damageable);
+        if (damageable != null && damageable != GetComponentInParent<IDamageable>())
+        {
+            info.target = null;
+            info.targetObj = null;
+        }
     }
 
     public void SetEnableCollider(bool value)
     {
         attackCollider.enabled = value;
+        Debug.Log($"{gameObject.name} : {value}");
     }
 }

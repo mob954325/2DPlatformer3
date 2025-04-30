@@ -25,19 +25,19 @@ public enum PlayerActionState
 }
 
 [RequireComponent(typeof(PlayerInput))]
-public class Player : MonoBehaviour, IAttacker, IDamageable, IAnimatable
+public class Player : MonoBehaviour, IAttacker, IDamageable
 {
     private PlayerInput input;
     public PlayerInput Input { get => input; }
     private StateMachine movementStateMachine;
     private StateMachine actionStateMachine;
 
-    //AttackArea attackArea;
-    //Vector2 attackLocalPosition;
+    public AttackArea[] attackAreas = new AttackArea[2]; // right, left
 
     private Rigidbody2D rigid2d;
     private SpriteRenderer spriteRenderer;
     private Animator animator;
+
     private Transform groundCheckTransform;
     private LayerMask groundLayer;
     private float groundCheckRadius = 0.12f;
@@ -65,11 +65,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable, IAnimatable
             if (actionState == value) return;
 
             actionState = value;
-
-            if(actionState != PlayerActionState.None)
-            {
-                actionStateMachine.StateChange((int)(actionState - 1)); // None 제외
-            }
+            actionStateMachine.StateChange((int)(actionState)); // None 제외
         }
     }
 
@@ -139,7 +135,12 @@ public class Player : MonoBehaviour, IAttacker, IDamageable, IAnimatable
 
         groundCheckTransform = transform.GetChild(2).transform;
         groundLayer = LayerMask.GetMask("Ground");
-        //attackArea = GetComponentInChildren<AttackArea>();
+
+        attackAreas = transform.GetChild(3).GetComponentsInChildren<AttackArea>();
+        foreach(AttackArea area in attackAreas)
+        {
+            area.Initialize();
+        }
     }
 
     private void OnEnable()
@@ -153,17 +154,26 @@ public class Player : MonoBehaviour, IAttacker, IDamageable, IAnimatable
     }
 
     #region Functions
-    private void UpdatePlayerState()
-    {
-        CheckActionState();
-        CheckMovementState();
-    }
-
     public void Initialize()
     {
         // 데이터 초기화
         Hp = maxHp;
+
+        // 공격 콜라이더 초기화
+        foreach (AttackArea area in attackAreas)
+        {
+            area.SetEnableCollider(false);
+        }
+
+        // 상태 초기화
         Movestate = PlayerMovementState.Idle;
+        ActionState = PlayerActionState.None;
+    }
+
+    private void UpdatePlayerState()
+    {
+        CheckActionState();
+        CheckMovementState();
     }
 
     private void CheckActionState()
@@ -251,11 +261,15 @@ public class Player : MonoBehaviour, IAttacker, IDamageable, IAnimatable
         return Physics2D.OverlapCircle(groundCheckTransform.position, groundCheckRadius, groundLayer);
     }
 
-    public bool isFalling()
+    public bool IsFalling()
     {
         return rigid2d.linearVelocity.y < 0;
     }
 
+    public void PlayAnimation(string name)
+    {
+        animator.Play(name);
+    }
     #endregion
 
     #region Move
@@ -287,12 +301,36 @@ public class Player : MonoBehaviour, IAttacker, IDamageable, IAnimatable
     #endregion
 
     #region Attack
+    public IDamageable ActiveAttackArea()
+    {
+        IDamageable target;
+        if (spriteRenderer.flipX)
+        {
+            attackAreas[1].SetEnableCollider(true);
 
+            target = attackAreas[1].Info.target;
+        }
+        else
+        {
+            attackAreas[0].SetEnableCollider(true);      
+            target = attackAreas[0].Info.target;
+        }
+
+        return target;
+    }
+
+    public void DeactiveAttackArea()
+    {
+        attackAreas[1].SetEnableCollider(false);
+        attackAreas[0].SetEnableCollider(false);
+    }
     #endregion
 
     #region IAttacker
     public void OnAttack(IDamageable target)
     {
+        if (target == null) return;
+
         target.TakeDamage(AttackDamage);
     }
     #endregion
@@ -309,13 +347,6 @@ public class Player : MonoBehaviour, IAttacker, IDamageable, IAnimatable
     public void OnDead()
     {
         ActionState = PlayerActionState.Dead;
-    }
-    #endregion
-
-    #region IAnimatable
-    public void PlayAnimation(string name)
-    {
-        animator.Play(Animator.StringToHash(name));
     }
     #endregion
 
