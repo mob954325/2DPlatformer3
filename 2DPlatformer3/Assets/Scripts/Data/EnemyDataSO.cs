@@ -16,10 +16,4 @@ public class EnemyDataSO : ScriptableObject
     public float moveSpeed;
     public int damage;
     public float attackCooldown;
-
-    [Header("원거리 전용")]
-    public bool isRanged; // true일 때 아래 값 사용
-    public float minAttackDistance;
-    public float backstepSpeed;
-    public GameObject bulletPrefab;
 }

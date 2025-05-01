@@ -52,9 +52,8 @@ public class StateMachine : MonoBehaviour
         else
         {
             currentState = StateList[0]; // 리스트의 첫 번째로 초기화
+            isInitialzed = true;
         }
-
-        isInitialzed = true;
     }
 
     private void Update()
@@ -83,6 +82,7 @@ public class StateMachine : MonoBehaviour
 
     public void StateChange(int listIndex)
     {
+        if (listIndex >= StateList.Count) return;
         CurrentState = StateList[listIndex];
     }
 

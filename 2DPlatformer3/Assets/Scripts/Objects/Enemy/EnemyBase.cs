@@ -1,256 +1,294 @@
-﻿using System;
+﻿using JetBrains.Annotations;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Windows;
 
-public enum EnemyState
+public enum EnemyMovementState
 {
-    BeforeSpawn = 0,
-    Idle,
-    Chasing,
+    Idle = 0,
+    Move,
+}
+
+public enum EnemyActionState
+{
+    None = 0,
     Attack,
     Hit,
-    Dead,
+    Dead
 }
 
 [RequireComponent(typeof(Rigidbody2D),typeof(Collider2D))]
-public abstract class EnemyBase : MonoBehaviour, IDamageable, IPoolable
+public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolable
 {
     [SerializeField] protected EnemyDataSO data;
+    private StateMachine movementStateMachine;
+    private StateMachine actionStateMachine;
+    private AttackArea[] attackAreas = new AttackArea[2];
+
+    protected Animator animator;
     protected SpriteRenderer spriteRenderer;
     protected Rigidbody2D rigid2d;
 
-    [SerializeField] private EnemyState currentState;
-    public EnemyState CurrentState
+    private EnemyMovementState moveState;
+    protected EnemyMovementState MoveState
     {
-        get => currentState;
+        get => moveState;
         set
         {
-            if (currentState == value) return; // 중복 방지
+            if (moveState == value) return;
 
-            StateEnd(currentState);
-            currentState = value;
-
-            rigid2d.linearVelocity = Vector2.zero;
-            StateStart(currentState);
-
-            Debug.Log($"{currentState.ToString()}");
+            moveState = value;
+            movementStateMachine.StateChange((int)moveState);
         }
     }
 
-    // stats
-    private float maxHp = 0;
-    public float MaxHp 
-    { 
-        get => maxHp;
+    private EnemyActionState actionState;
+    private EnemyActionState ActionState
+    {
+        get => actionState;
         set
         {
-            maxHp = value;
-            Hp = maxHp;
+            if (actionState == value) return;
+
+            actionState = value;
+            actionStateMachine.StateChange((int)(actionState)); // None 제외
         }
     }
-    private float hp = 0;
-    public float Hp 
-    { 
-        get => hp; 
+
+    #region IDamageable
+    public Action ReturnAction { get; set; }
+
+    private float maxHp = 0f;
+    public float MaxHp { get => maxHp; set => maxHp = value; }
+
+    private float currentHp = 0;
+    public float Hp
+    {
+        get => currentHp;
         set
         {
-            hp = Mathf.Clamp(value, 0.0f, MaxHp);
-            Debug.Log($"{gameObject.name} : {Hp}");
+            currentHp = Mathf.Clamp(value, 0.0f, MaxHp);
+            OnHpChange?.Invoke();
 
-            if (hp <= 0.0f)
+            Debug.Log($"{gameObject.name} {Hp}");
+
+            if (IsDead)
             {
-                CurrentState = EnemyState.Dead;
                 OnDead();
             }
-            else
-            {
-                OnHpChange?.Invoke();
-            }
         }
     }
 
-    public bool IsDead => Hp <= 0f;
-
-    private float maxHitDelay = 0.25f;
-    private float hitDelay = 0.0f;
+    public bool IsDead => Hp <= 0;
 
     public Action OnHpChange { get; set; }
     public Action OnHitPerformed { get; set; }
     public Action OnDeadPerformed { get; set; }
-    public Action ReturnAction { get; set; }
+    #endregion
 
-    virtual protected void Start()
+    #region IAttacker
+    private float attackDamage = 0;
+    public float AttackDamage => attackDamage;
+
+    private float attackCooldown = 0f;
+    public float AttackCooldown 
     {
-        spriteRenderer = GetComponent<SpriteRenderer>();
+        get => attackCooldown;
+        set => attackCooldown = value; 
+    }
+
+    private float maxAttackCooldown = 0f;
+    public float MaxAttackCooldown => maxAttackCooldown;
+
+    private bool canAttack = false;
+    public bool CanAttack { get => canAttack; set => canAttack = value; }
+    public Action<IDamageable> OnAttackPerformed { get; set; }
+    #endregion
+
+    private Vector2 moveVec = Vector2.zero;
+    private float sightAngle = 0f;
+    private float sightRange = 0f;
+    private float attackRange = 0f;
+    private float moveSpeed = 0f;
+
+    protected virtual void Awake()
+    {
+        animator = GetComponent<Animator>();
         rigid2d = GetComponent<Rigidbody2D>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
 
-        Initialize(data); // 임시
+        movementStateMachine = transform.GetChild(0).GetComponent<StateMachine>();
+        actionStateMachine = transform.GetChild(1).GetComponent<StateMachine>();
+
+        attackAreas = transform.GetChild(2).GetComponentsInChildren<AttackArea>();
+        foreach (AttackArea area in attackAreas)
+        {
+            area.Initialize();
+        }
     }
 
-    virtual protected void OnEnable()
+    private void Update()
     {
-        CurrentState = EnemyState.BeforeSpawn;
+        UpdatePlayerState();
     }
 
-    virtual protected void OnDisable()
-    {      
-        ReturnAction?.Invoke();
-    }
-
-    protected virtual void Update()
+    #region Functions
+    public void Initialize()
     {
-        if (hitDelay >= 0.0f) hitDelay -= Time.deltaTime;
-        UpdateByState();
-    }
-
-    public void Initialize(EnemyDataSO data)
-    {
-        CurrentState = EnemyState.BeforeSpawn;
-        SetData(data);
+        SetData();
         SetAdditionalData();
-        CurrentState = EnemyState.Idle;
+
+        // 공격 콜라이더 초기화
+        foreach (AttackArea area in attackAreas)
+        {
+            area.SetEnableCollider(false);
+        }
+
+        // 상태 초기화
+        MoveState = EnemyMovementState.Idle;
+        ActionState = EnemyActionState.None;
     }
 
-    /// <summary>
-    /// 초기화 추가 설정 실행 함수
-    /// </summary>
-    protected virtual void SetAdditionalData()
-    {
-        
-    }
-
-    protected virtual void SetData(EnemyDataSO data)
+    private void SetData()
     {
         MaxHp = data.maxHp;
+        Hp = MaxHp;
+        sightAngle = data.sightAngle;
+        sightRange = data.sightRange;
+        attackRange = data.attackRange;
+        moveSpeed = data.moveSpeed;
+        attackDamage = data.damage;
+        maxAttackCooldown = data.attackCooldown;
     }
 
-    // State ---------------------------------------------------------------------------------------
-
-    /// <summary>
-    /// 상태 변경 후 상태 진입 전 초기화 함수 호출
-    /// </summary>
-    /// <param name="state">변경할 상태</param>
-    public void StateStart(EnemyState state)
+    protected virtual void SetAdditionalData()
     {
-        switch (state)
+        // 추가 데이터 설정하는 곳
+    }
+
+    private void UpdatePlayerState()
+    {
+        CheckActionState();
+        CheckMovementState();
+    }
+
+    protected virtual void CheckActionState()
+    {
+        // 공격
+        if (ActionState != EnemyActionState.Attack)
         {
-            case EnemyState.Idle:
-                OnIdleStateStart();
-                break;
-            case EnemyState.Chasing:
-                OnChaseStateStart();
-                break;
-            case EnemyState.Attack:
-                OnAttackStateStart();
-                break;
-            case EnemyState.Hit:
-                OnHitStateStart();
-                break;
-            case EnemyState.Dead:
-                OnDeadStateStart();
-                break;
+            ActionState = EnemyActionState.Attack;
         }
     }
 
-    public void UpdateByState()
+    protected virtual void CheckMovementState()
     {
-        switch (CurrentState)
+        CheckMovementTransitionBlock();
+
+        // 점프
+        if (moveVec.x == 0)
         {
-            case EnemyState.Idle:
-                OnIdleState();
-                break;
-            case EnemyState.Chasing:
-                OnChasingState();
-                break;
-            case EnemyState.Attack:
-                OnAttackState();
-                break;
-            case EnemyState.Hit:
-                OnHitState();
-                break;
-            case EnemyState.Dead:
-                OnDeadState();
-                break;
+            // 대기
+            MoveState = EnemyMovementState.Idle;
+        }
+        else
+        {
+            // 이동
+            MoveState = EnemyMovementState.Move;
+        }
+    }
+    protected virtual void CheckMovementTransitionBlock()
+    {
+        if (ActionState == EnemyActionState.Hit || ActionState == EnemyActionState.Dead)
+            return; // 입력 무시
+
+        if (ActionState != EnemyActionState.None)
+        {
+            movementStateMachine.SetTransitionBlocked(true);
+        }
+        else
+        {
+            movementStateMachine.SetTransitionBlocked(false);
+
+            // NOTE : 반드시 StateNode 이름과 Enum 타입의 이름이 동일할 것
+            PlayAnimation(MoveState.ToString());
         }
     }
 
-
-
-    private void StateEnd(EnemyState currentState)
+    public bool CheckAnimationEnd()
     {
-        switch (currentState)
-        {
-            case EnemyState.Idle:
-                OnIdleStateEnd();
-                break;
-            case EnemyState.Chasing:
-                OnChaseStateEnd();
-                break;
-            case EnemyState.Attack:
-                OnAttackStateEnd();
-                break;
-            case EnemyState.Hit:
-                OnHitStateEnd();
-                break;
-            case EnemyState.Dead:
-                OnDeadStateEnd();
-                break;
-        }
+        return animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f;
     }
 
+    public void SpriteFlip(bool isLeft)
+    {
+        spriteRenderer.flipX = isLeft;
+    }
 
-    protected virtual void OnIdleStateStart() { }
-    protected virtual void OnChaseStateStart() { }
-    protected virtual void OnAttackStateStart() { }
-    protected virtual void OnHitStateStart() { }
-    protected virtual void OnDeadStateStart() { }
+    public void SetMovementState(EnemyMovementState state)
+    {
+        MoveState = state;
+    }
 
-    protected virtual void OnIdleState() { } 
-    protected virtual void OnChasingState() { }
-    protected virtual void OnAttackState() { }
-    protected virtual void OnHitState() { }
-    protected virtual void OnDeadState() { } // 상태 업데이트 용
+    public void SetActionState(EnemyActionState state)
+    {
+        ActionState = state;
+    }
 
-    protected virtual void OnIdleStateEnd() { }
-    protected virtual void OnChaseStateEnd() { }
-    protected virtual void OnAttackStateEnd() { }
-    protected virtual void OnHitStateEnd() { }
-    protected virtual void OnDeadStateEnd() { }
+    public void PlayAnimation(string name)
+    {
+        animator.Play(name);
+    }
+    #endregion
 
-    // IDamageable ---------------------------------------------------------------------------------------
+    #region IDamageable
+    public void OnDead()
+    {
+        OnDeadPerformed?.Invoke();
+        ActionState = EnemyActionState.Dead;
+    }
 
     public void TakeDamage(float damageValue)
     {
         if (IsDead) return;
-        if (hitDelay > 0.0f) return;
 
-        hitDelay = maxHitDelay;
         Hp -= damageValue;
         OnHitPerformed?.Invoke();
+        ActionState = EnemyActionState.Hit;
+    }
+    #endregion
 
-        Debug.Log($"{gameObject.name} hit!!!");
+    #region IPoolable
+    public void OnDespawn()
+    {
+        // 풀에서 디스폰 시 실행
+        BeforeDespawn();
     }
 
-    public void OnDead()
+    protected virtual void BeforeDespawn()
     {
-        // 사망로직
-        if (IsDead) return;
-
-        OnDeadPerformed?.Invoke();
-        Debug.Log($"{gameObject.name} 사망 ");
+        // 상속 받은 enemy가 풀에서 디스폰 시 실행될 내용
     }
 
     public void OnSpawn()
     {
-        Debug.Log("스폰");
+        // 풀에서 스폰 시 실행
+        Initialize();
+        BeforeSpawn();
     }
 
-    public void OnDespawn()
+    protected virtual void BeforeSpawn()
     {
-        Debug.Log("디스폰");
-        OnHpChange = null;
-        OnHitPerformed = null;
-        OnDeadPerformed = null;
+        // 상속 받은 enemy가 풀에서 스폰 시 실행될 내용
     }
+    #endregion
+
+    #region IAttacker
+    public void OnAttack(IDamageable target)
+    {
+        target.TakeDamage(AttackDamage);
+    }
+    #endregion
 }

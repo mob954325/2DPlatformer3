@@ -44,7 +44,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
 
 
     [SerializeField] PlayerMovementState moveState;
-    private PlayerMovementState Movestate
+    private PlayerMovementState MoveState
     {
         get => moveState;
         set
@@ -104,7 +104,6 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         get => currentHp;
         set
         {
-            float prevHp = currentHp;
             currentHp = Mathf.Clamp(value, 0.0f, MaxHp);
             OnHpChange?.Invoke();
 
@@ -166,7 +165,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         }
 
         // 상태 초기화
-        Movestate = PlayerMovementState.Idle;
+        MoveState = PlayerMovementState.Idle;
         ActionState = PlayerActionState.None;
     }
 
@@ -198,23 +197,23 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         bool isGround = CheckIsGround();
         // 점프
         if (isGround 
-            && input.IsJump && Movestate != PlayerMovementState.Jump 
+            && input.IsJump && MoveState != PlayerMovementState.Jump 
             && ActionState == PlayerActionState.None)
         {
-            Movestate = PlayerMovementState.Jump;
+            MoveState = PlayerMovementState.Jump;
         }
 
-        if (Movestate != PlayerMovementState.Jump && Movestate != PlayerMovementState.Fall)
+        if (MoveState != PlayerMovementState.Jump && MoveState != PlayerMovementState.Fall)
         {
             if (input.InputVec.x == 0)
             {
                 // 대기
-                Movestate = PlayerMovementState.Idle;
+                MoveState = PlayerMovementState.Idle;
             }
             else
             {
                 // 이동
-                Movestate = PlayerMovementState.Move;
+                MoveState = PlayerMovementState.Move;
             }
         }
     }
@@ -232,7 +231,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
             movementStateMachine.SetTransitionBlocked(false);
 
             // NOTE : 반드시 StateNode 이름과 Enum 타입의 이름이 동일할 것
-            PlayAnimation(Movestate.ToString());
+            PlayAnimation(MoveState.ToString());
         }
     }
 
@@ -248,7 +247,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
 
     public void SetMovementState(PlayerMovementState state)
     {
-        Movestate = state;
+        MoveState = state;
     }
 
     public void SetActionState(PlayerActionState state)

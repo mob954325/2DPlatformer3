@@ -39,6 +39,5 @@ public class AttackArea : MonoBehaviour
     public void SetEnableCollider(bool value)
     {
         attackCollider.enabled = value;
-        Debug.Log($"{gameObject.name} : {value}");
     }
 }

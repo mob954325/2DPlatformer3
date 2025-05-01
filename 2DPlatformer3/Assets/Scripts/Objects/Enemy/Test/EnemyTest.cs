@@ -4,20 +4,25 @@ using UnityEngine;
 
 public class EnemyTest : EnemyBase
 {
-    SpriteRenderer sprite;
-
-    protected override void Start()
+    private void OnEnable()
     {
-        sprite = GetComponent<SpriteRenderer>();
-
-        OnHitPerformed += OnTestEnemyHit;
-        MaxHp = 10;
+        Initialize();
+        OnHitPerformed += OnTestEnemyHit;        
     }
 
-    protected override void OnDeadState()
+    private void OnDisable()
     {
-        base.OnDeadState();
-        Destroy(this.gameObject); // 임시
+        OnHitPerformed -= OnTestEnemyHit;        
+    }
+
+    protected override void BeforeSpawn()
+    {
+        //OnHitPerformed += OnTestEnemyHit;
+    }
+
+    protected override void BeforeDespawn()
+    {
+        //OnHitPerformed -= OnTestEnemyHit;
     }
 
     private void OnTestEnemyHit()
@@ -28,8 +33,8 @@ public class EnemyTest : EnemyBase
 
     IEnumerator ColorChangeProcess()
     {
-        sprite.color = Color.red;
+        spriteRenderer.color = Color.red;
         yield return new WaitForSeconds(0.05f);
-        sprite.color = Color.white;
+        spriteRenderer.color = Color.white;
     }
 }
