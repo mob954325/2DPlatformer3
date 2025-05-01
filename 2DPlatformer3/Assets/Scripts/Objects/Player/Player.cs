@@ -40,7 +40,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
 
     private Transform groundCheckTransform;
     private LayerMask groundLayer;
-    private float groundCheckRadius = 0.12f;
+    private float groundCheckRadius = 0.2f;
 
 
     [SerializeField] PlayerMovementState moveState;
@@ -65,7 +65,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
             if (actionState == value) return;
 
             actionState = value;
-            actionStateMachine.StateChange((int)(actionState)); // None 제외
+            actionStateMachine.StateChange((int)(actionState));
         }
     }
 
@@ -177,6 +177,8 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
 
     private void CheckActionState()
     {
+        if (IsDead || ActionState == PlayerActionState.Hit) return;
+
         // 공격
         if (input.IsAttack && ActionState != PlayerActionState.Attack)
         {
@@ -192,6 +194,8 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
 
     private void CheckMovementState()
     {
+        if (IsDead) return;
+
         CheckMovementTransitionBlock();
 
         bool isGround = CheckIsGround();
@@ -262,7 +266,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
 
     public bool IsFalling()
     {
-        return rigid2d.linearVelocity.y < 0;
+        return rigid2d.linearVelocity.y <= 0;
     }
 
     public void PlayAnimation(string name)
@@ -351,12 +355,13 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     {
         if (IsDead) return;
 
-        Hp -= damageValue;
         ActionState = PlayerActionState.Hit;
+        Hp -= damageValue;
     }
 
     public void OnDead()
     {
+        MoveState = PlayerMovementState.Idle;
         ActionState = PlayerActionState.Dead;
     }
     #endregion

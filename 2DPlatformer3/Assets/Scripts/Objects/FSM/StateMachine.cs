@@ -24,7 +24,7 @@ public class StateMachine : MonoBehaviour
         }
     }
 
-    private List<StateBase> StateList;
+    [SerializeField] private List<StateBase> StateList;
 
     private bool isInitialzed = false;
     private bool isStateChanging = false;
@@ -32,10 +32,16 @@ public class StateMachine : MonoBehaviour
 
     private void Awake()
     {
-        isInitialzed = false;
+        isInitialzed = false;        
+    }
 
+    private void OnEnable()
+    {
         // Load states
-        StateList = GetComponentsInChildren<StateBase>().ToList();
+        if(!isInitialzed)
+        {
+            StateList = GetComponentsInChildren<StateBase>().ToList();
+        }
     }
 
     private void Start()
@@ -43,7 +49,7 @@ public class StateMachine : MonoBehaviour
         Initialize();
     }
 
-    public void Initialize()
+    private void Initialize()
     {
         if(StateList.Count == 0)
         {

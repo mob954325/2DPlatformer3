@@ -5,6 +5,5 @@ using UnityEngine;
 public enum PoolType
 {
     EnemyMelee = 0,
-    EnemyRange,
     PoolTypeCount
 }

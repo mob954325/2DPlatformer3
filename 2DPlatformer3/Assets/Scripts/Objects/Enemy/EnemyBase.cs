@@ -26,12 +26,15 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
     private StateMachine movementStateMachine;
     private StateMachine actionStateMachine;
     private AttackArea[] attackAreas = new AttackArea[2];
+    private AttackArea detectArea;
 
     protected Animator animator;
     protected SpriteRenderer spriteRenderer;
     protected Rigidbody2D rigid2d;
 
-    private EnemyMovementState moveState;
+    protected Transform detectPlayer;
+
+    [SerializeField] private EnemyMovementState moveState;
     protected EnemyMovementState MoveState
     {
         get => moveState;
@@ -44,8 +47,8 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
         }
     }
 
-    private EnemyActionState actionState;
-    private EnemyActionState ActionState
+    [SerializeField] private EnemyActionState actionState;
+    protected EnemyActionState ActionState
     {
         get => actionState;
         set
@@ -53,7 +56,7 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
             if (actionState == value) return;
 
             actionState = value;
-            actionStateMachine.StateChange((int)(actionState)); // None 제외
+            actionStateMachine.StateChange((int)(actionState));
         }
     }
 
@@ -69,7 +72,7 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
         get => currentHp;
         set
         {
-            currentHp = Mathf.Clamp(value, 0.0f, MaxHp);
+            currentHp = Mathf.Clamp(value, 0f, MaxHp);
             OnHpChange?.Invoke();
 
             Debug.Log($"{gameObject.name} {Hp}");
@@ -107,11 +110,12 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
     public Action<IDamageable> OnAttackPerformed { get; set; }
     #endregion
 
-    private Vector2 moveVec = Vector2.zero;
-    private float sightAngle = 0f;
-    private float sightRange = 0f;
-    private float attackRange = 0f;
-    private float moveSpeed = 0f;
+    protected Vector2 moveVec = Vector2.zero;
+    protected float sightRange = 0f;
+    protected float attackRange = 0f;
+    protected float moveSpeed = 0f;
+
+    private bool isMoveTransitionLock = false; 
 
     protected virtual void Awake()
     {
@@ -127,9 +131,10 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
         {
             area.Initialize();
         }
+        detectArea = transform.GetChild(3).GetComponent<AttackArea>();
     }
 
-    private void Update()
+    protected virtual void Update()
     {
         UpdatePlayerState();
     }
@@ -145,6 +150,8 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
         {
             area.SetEnableCollider(false);
         }
+        detectArea.Initialize();
+        detectArea.GetComponent<CircleCollider2D>().radius = sightRange;
 
         // 상태 초기화
         MoveState = EnemyMovementState.Idle;
@@ -155,7 +162,6 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
     {
         MaxHp = data.maxHp;
         Hp = MaxHp;
-        sightAngle = data.sightAngle;
         sightRange = data.sightRange;
         attackRange = data.attackRange;
         moveSpeed = data.moveSpeed;
@@ -176,44 +182,30 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
 
     protected virtual void CheckActionState()
     {
-        // 공격
-        if (ActionState != EnemyActionState.Attack)
-        {
-            ActionState = EnemyActionState.Attack;
-        }
+        // 액션 상태 내용
     }
 
     protected virtual void CheckMovementState()
     {
-        CheckMovementTransitionBlock();
-
-        // 점프
-        if (moveVec.x == 0)
-        {
-            // 대기
-            MoveState = EnemyMovementState.Idle;
-        }
-        else
-        {
-            // 이동
-            MoveState = EnemyMovementState.Move;
-        }
+        // 움직임 상태 내용
     }
     protected virtual void CheckMovementTransitionBlock()
     {
         if (ActionState == EnemyActionState.Hit || ActionState == EnemyActionState.Dead)
-            return; // 입력 무시
+            return;
 
         if (ActionState != EnemyActionState.None)
         {
             movementStateMachine.SetTransitionBlocked(true);
+            isMoveTransitionLock = true;
         }
         else
         {
             movementStateMachine.SetTransitionBlocked(false);
 
             // NOTE : 반드시 StateNode 이름과 Enum 타입의 이름이 동일할 것
-            PlayAnimation(MoveState.ToString());
+            if(isMoveTransitionLock) PlayAnimation(MoveState.ToString());
+            isMoveTransitionLock = false;
         }
     }
 
@@ -239,7 +231,83 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
 
     public void PlayAnimation(string name)
     {
-        animator.Play(name);
+        animator.Play(name, -1, 0f);
+    }
+
+    public bool CheckDetectPlayer(out float distance)
+    {
+        distance = sightRange + 0.1f;
+        detectPlayer = null;
+
+        foreach (IDamageable target in detectArea.TargetList)
+        {
+            MonoBehaviour mono = target as MonoBehaviour;
+
+            if(mono != null && mono.CompareTag("Player"))
+            {
+                detectPlayer = mono.transform;
+                distance = Vector2.Distance(mono.gameObject.transform.position, transform.position);
+                return true;
+            }
+        }
+
+        return false;        
+    }
+    #endregion
+
+    #region Move
+    public void OnMove(Vector2 vec)
+    {
+        moveVec = vec;
+
+        if (moveVec.x != 0)
+        {
+            rigid2d.linearVelocity = new Vector2(moveVec.x * moveSpeed, rigid2d.linearVelocity.y);
+        }
+    }
+    public void MoveStop()
+    {
+        rigid2d.linearVelocity = new Vector2(0f, rigid2d.linearVelocity.y);
+    }
+    #endregion
+
+    #region Attack
+    public void ActiveAttackArea(bool isLeft)
+    {
+        if (isLeft)
+        {
+            attackAreas[1].SetEnableCollider(true);
+        }
+        else
+        {
+            attackAreas[0].SetEnableCollider(true);
+        }
+    }
+
+    public void DeactiveAttackArea()
+    {
+        attackAreas[1].SetEnableCollider(false);
+        attackAreas[0].SetEnableCollider(false);
+    }
+
+    public void TryAttack(bool isLeft)
+    {
+        if (detectPlayer == null) return;
+
+        if (isLeft)
+        {
+            foreach (IDamageable target in attackAreas[1].TargetList)
+            {
+                OnAttack(target);
+            }
+        }
+        else
+        {
+            foreach (IDamageable target in attackAreas[0].TargetList)
+            {
+                OnAttack(target);
+            }
+        }
     }
     #endregion
 
@@ -247,6 +315,8 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
     public void OnDead()
     {
         OnDeadPerformed?.Invoke();
+
+        MoveState = EnemyMovementState.Idle;
         ActionState = EnemyActionState.Dead;
     }
 
@@ -254,9 +324,9 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
     {
         if (IsDead) return;
 
-        Hp -= damageValue;
-        OnHitPerformed?.Invoke();
         ActionState = EnemyActionState.Hit;
+        OnHitPerformed?.Invoke();
+        Hp -= damageValue;
     }
     #endregion
 
@@ -264,6 +334,7 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
     public void OnDespawn()
     {
         // 풀에서 디스폰 시 실행
+        detectPlayer = null;
         BeforeDespawn();
     }
 

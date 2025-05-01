@@ -12,15 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cffe88b023c399949ad35de02aaeddff, type: 3}
   m_Name: EnemyData_LightBandit
   m_EditorClassIdentifier: 
-  maxHp: 20
+  maxHp: 5
   isCombat: 1
-  sightAngle: 25
   sightRange: 5
   attackRange: 2
   moveSpeed: 1
   damage: 1
   attackCooldown: 1
-  isRanged: 0
-  minAttackDistance: 0
-  backstepSpeed: 0
-  bulletPrefab: {fileID: 0}
