@@ -144,19 +144,15 @@ public class PoolManager : Singleton<PoolManager>
         return obj;
     }
 
-    public void ClearAll()
+    public void ClearPoolData()
     {
         foreach(var pool in poolDictionary)
         {
             pool.Value.readyQueue.Clear();
-
-            foreach (var obj in pool.Value.objectList)
-            {
-                IPoolable poolable = obj.GetComponent<IPoolable>();
-                poolable.ReturnAction?.Invoke();
-                Destroy(obj);
-            }
+            pool.Value.objectList.Clear();
         }
+
+        poolDictionary.Clear();
     }
 
     public void ClearPool(string key)

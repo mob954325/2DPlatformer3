@@ -7,32 +7,40 @@ public class PausePanel : MonoBehaviour
     private CanvasGroup cg;
     private Button returnMenuButton;
 
+    private void Awake()
+    {
+        cg = GetComponent<CanvasGroup>();        
+    }
+
     private void Start()
     {
-        cg = GetComponent<CanvasGroup>();
         returnMenuButton = transform.GetChild(1).Find("GoToMenu").GetComponent<Button>();
         returnMenuButton.onClick.AddListener(() => 
         {
             if (GameManager.Instacne.State == GameState.Menu) return;
+
+            ClosePanel();
             GameManager.Instacne.SceneChange(0); 
         });
-        ClosePanel(); // 오류 - nullreference 
+
+        ClosePanel();
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
         inputActions.UI.OpenPause.performed -= OpenPause_performed;
     }
 
-    public void Initialize()
+    public void OnEnable()
     {
+        inputActions = new PlayerInputActions();
         inputActions.UI.OpenPause.Enable();
         inputActions.UI.OpenPause.performed += OpenPause_performed;
     }    
 
     private void OpenPanel()
     {
-        if (cg = null) return;
+        if (cg == null) return;
 
         cg.alpha = 1;
         cg.blocksRaycasts = true;
@@ -41,7 +49,7 @@ public class PausePanel : MonoBehaviour
 
     private void ClosePanel()
     {
-        if (cg = null) return;
+        if (cg == null) return;
 
         cg.alpha = 0; // null reference
         cg.blocksRaycasts = false;
@@ -50,7 +58,8 @@ public class PausePanel : MonoBehaviour
 
     private void OpenPause_performed(UnityEngine.InputSystem.InputAction.CallbackContext obj)
     {
-        if (cg = null) return;
+        if (cg == null) return;
+        if (GameManager.Instacne.State != GameState.Play) return;
 
         if(cg.alpha > 0)
         {

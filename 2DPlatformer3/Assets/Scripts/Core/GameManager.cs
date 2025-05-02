@@ -59,8 +59,6 @@ public class GameManager : Singleton<GameManager>
 
     private void SetMenuScene()
     {
-        PoolManager.Instacne.ClearAll();
-
         Button StartButton = GameObject.Find("Start").GetComponent<Button>();
         StartButton.onClick.AddListener(() => 
         {
@@ -100,7 +98,8 @@ public class GameManager : Singleton<GameManager>
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         SceneManager.sceneLoaded -= OnSceneLoaded; // 중복 호출 방지
-        if(SceneManager.GetActiveScene().buildIndex == 0)
+        PoolManager.Instacne.ClearPoolData();
+        if (SceneManager.GetActiveScene().buildIndex == 0)
         {
             State = GameState.Menu;
         }
