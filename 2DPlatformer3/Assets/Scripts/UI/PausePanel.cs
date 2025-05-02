@@ -16,7 +16,7 @@ public class PausePanel : MonoBehaviour
             if (GameManager.Instacne.State == GameState.Menu) return;
             GameManager.Instacne.SceneChange(0); 
         });
-        ClosePanel();
+        ClosePanel(); // 오류 - nullreference 
     }
 
     private void OnDestroy()
