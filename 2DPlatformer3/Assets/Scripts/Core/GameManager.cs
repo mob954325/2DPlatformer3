@@ -1,15 +1,79 @@
+ï»¿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
+public enum GameState
+{
+    BeforeStart = 0, // í”„ë¡œê·¸ë¨ ì‹œì‘ í›„ State í˜¸ì¶œ ì „ ìƒíƒœ
+    Menu,
+    Play,
+}
 
 public class GameManager : Singleton<GameManager>
 {
-    [Tooltip("PoolType ¼ø¼­´ë·Î ¿ÀºêÁ§Æ®¸¦ ¹èÄ¡ ÇÒ °Í")]
+    [Tooltip("PoolType ìˆœì„œëŒ€ë¡œ ì˜¤ë¸Œì íŠ¸ë¥¼ ë°°ì¹˜ í•  ê²ƒ")]
     public GameObject[] poolPrefab = new GameObject[(int)PoolType.PoolTypeCount];
+
+    private GameState state;
+    public GameState State
+    {
+        get => state;
+        set
+        {
+            if (state == value) return; // ì¤‘ë³µ í˜¸ì¶œ ë°©ì§€
+
+            state = value;
+            Initialize(state);
+        }
+    }
 
     protected override void Awake()
     {
         base.Awake();
+
+        State = GameState.BeforeStart;
+    }
+
+    private void Start()
+    {
+        State = GameState.Menu;
+    }
+
+    private void Initialize(GameState state)
+    {
+        switch (state)
+        {
+            case GameState.Menu:
+                SetMenuScene();
+                break;
+            case GameState.Play:
+                SetPlayScene();
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void SetMenuScene()
+    {
+        PoolManager.Instacne.ClearAll();
+
+        Button StartButton = GameObject.Find("Start").GetComponent<Button>();
+        StartButton.onClick.AddListener(() => 
+        {
+            Debug.Log("start");
+            SceneChange(1);
+        });
+
+        Button ExitButton = GameObject.Find("Exit").GetComponent<Button>();
+        ExitButton.onClick.AddListener(ExitGame);
+    }
+
+    private void SetPlayScene()
+    {
         SetPoolManager();
     }
 
@@ -18,6 +82,31 @@ public class GameManager : Singleton<GameManager>
         for(int i = 0; i < (int)PoolType.PoolTypeCount; i++)
         {
             PoolManager.Instacne.Register(((PoolType)i).ToString(), poolPrefab[i]);
+        }
+    }
+
+    private void ExitGame()
+    {
+        Debug.Log("Exit");
+        Application.Quit();
+    }
+
+    public void SceneChange(int sceneIndex)
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        SceneManager.LoadScene(sceneIndex);
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded; // ì¤‘ë³µ í˜¸ì¶œ ë°©ì§€
+        if(SceneManager.GetActiveScene().buildIndex == 0)
+        {
+            State = GameState.Menu;
+        }
+        else
+        {
+            State = GameState.Play;
         }
     }
 }

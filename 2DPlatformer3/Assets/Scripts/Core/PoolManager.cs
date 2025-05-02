@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -10,15 +10,15 @@ public interface IPoolable
     public void OnDespawn();
 
     /// <summary>
-    /// PoolManager Queue¿¡ µ¹¾Æ°¡±â À§ÇÑ µ¨¸®°ÔÀÌÆ®
+    /// PoolManager Queueì— ëŒì•„ê°€ê¸° ìœ„í•œ ë¸ë¦¬ê²Œì´íŠ¸
     /// </summary>
     Action ReturnAction { get; set; }
 }
 
-// ÃÊ±âÈ­
-// ¿ÀºêÁ§Æ® ²¨³»±â
-// ¹è¿­ È®Àå
-// ¸ğµç ¿ÀºêÁ§Æ® Á¦°Å
+// ì´ˆê¸°í™”
+// ì˜¤ë¸Œì íŠ¸ êº¼ë‚´ê¸°
+// ë°°ì—´ í™•ì¥
+// ëª¨ë“  ì˜¤ë¸Œì íŠ¸ ì œê±°
 
 public class PoolManager : Singleton<PoolManager>
 {
@@ -64,7 +64,7 @@ public class PoolManager : Singleton<PoolManager>
             return null;
         }
 
-        if (data.readyQueue.Count == 0) // È®Àå
+        if (data.readyQueue.Count == 0) // í™•ì¥
         {
             ExpandPoolSize(key);
         }
@@ -117,9 +117,9 @@ public class PoolManager : Singleton<PoolManager>
 
         int prevCapacity = data.capacity;
         data.capacity *= 2;
-        Debug.LogWarning($"{gameObject.name} Ç® ¸Å´ÏÀú Å©±â È®Àå | {prevCapacity} -> {data.capacity}");
+        Debug.LogWarning($"{gameObject.name} í’€ ë§¤ë‹ˆì € í¬ê¸° í™•ì¥ | {prevCapacity} -> {data.capacity}");
 
-        // »õ·Î¿î Ç® µî·Ï
+        // ìƒˆë¡œìš´ í’€ ë“±ë¡
         data.objectList = new List<GameObject>(data.capacity);
         for(int i = 0; i < prevCapacity; i++)
         {
@@ -142,6 +142,21 @@ public class PoolManager : Singleton<PoolManager>
         }
 
         return obj;
+    }
+
+    public void ClearAll()
+    {
+        foreach(var pool in poolDictionary)
+        {
+            pool.Value.readyQueue.Clear();
+
+            foreach (var obj in pool.Value.objectList)
+            {
+                IPoolable poolable = obj.GetComponent<IPoolable>();
+                poolable.ReturnAction?.Invoke();
+                Destroy(obj);
+            }
+        }
     }
 
     public void ClearPool(string key)
