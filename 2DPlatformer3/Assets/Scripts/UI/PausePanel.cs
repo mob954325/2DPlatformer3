@@ -26,6 +26,11 @@ public class PausePanel : MonoBehaviour
         ClosePanel();
     }
 
+    private void OnDestroy()
+    {
+        inputActions.UI.Disable();
+    }
+
     private void OnDisable()
     {
         inputActions.UI.OpenPause.performed -= OpenPause_performed;

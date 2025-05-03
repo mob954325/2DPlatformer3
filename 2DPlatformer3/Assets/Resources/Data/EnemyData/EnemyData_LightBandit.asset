@@ -15,7 +15,7 @@ MonoBehaviour:
   maxHp: 5
   isCombat: 1
   sightRange: 5
-  attackRange: 2
+  attackRange: 0.8
   moveSpeed: 1
   damage: 1
   attackCooldown: 1

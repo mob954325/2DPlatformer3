@@ -1,5 +1,4 @@
-﻿using NUnit.Framework;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -69,9 +68,9 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         }
     }
 
-    private float rollPower = 7f;
+    private float rollPower = 4f;
     private float jumpPower = 7f;
-    private float speed = 5f;
+    private float speed = 3f;
 
     #region IAttackable
     private float attackDamage = 1f;
@@ -186,8 +185,11 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         }
 
         // 구르기
-        if (input.InputVec.x != 0 && input.IsRoll && ActionState != PlayerActionState.Rolling)
+        if (input.InputVec.x != 0 && input.IsRoll 
+            && MoveState == PlayerMovementState.Move 
+            && ActionState != PlayerActionState.Rolling)
         {
+            Input.IsRoll = false;
             ActionState = PlayerActionState.Rolling;
         }
     }
@@ -204,6 +206,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
             && input.IsJump && MoveState != PlayerMovementState.Jump 
             && ActionState == PlayerActionState.None)
         {
+            input.IsJump = false;
             MoveState = PlayerMovementState.Jump;
         }
 
@@ -223,7 +226,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     }
     private void CheckMovementTransitionBlock()
     {
-        if (ActionState == PlayerActionState.Hit || ActionState == PlayerActionState.Dead)
+        if (ActionState == PlayerActionState.Dead)
             return; // 입력 무시
 
         if (ActionState != PlayerActionState.None)
@@ -361,6 +364,8 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
 
     public void OnDead()
     {
+        OnDeadPerformed?.Invoke();
+
         MoveState = PlayerMovementState.Idle;
         ActionState = PlayerActionState.Dead;
     }

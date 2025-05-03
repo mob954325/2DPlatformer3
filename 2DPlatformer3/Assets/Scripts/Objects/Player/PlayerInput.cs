@@ -11,10 +11,10 @@ public class PlayerInput : MonoBehaviour
     public bool IsAttack { get => isAttack; }
 
     bool isRoll = false;
-    public bool IsRoll { get => isRoll; }
+    public bool IsRoll { get => isRoll; set => isRoll = value; }
 
     bool isJump = false;
-    public bool IsJump { get => isJump; }
+    public bool IsJump { get => isJump; set => isJump = value; }
 
     private void Awake()
     {
@@ -29,7 +29,6 @@ public class PlayerInput : MonoBehaviour
         actions.Player.Jump.started += Jump_started;
         actions.Player.Jump.canceled += Jump_canceled;
     }
-
     private void OnEnable()
     {
         actions.Player.Enable();
