@@ -13,11 +13,13 @@ public class PlayerRoll : StateBase
     {
         player.PlayAnimation("Roll");
         player.OnRoll();
+        player.IsImmnue = true;
     }
 
     public override void StateExit()
     {
         player.MoveStop();
+        player.IsImmnue = false;
     }
 
     public override void StateUpdate()

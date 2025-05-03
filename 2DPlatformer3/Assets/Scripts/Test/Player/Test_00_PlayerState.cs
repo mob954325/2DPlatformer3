@@ -3,6 +3,7 @@ using UnityEngine.InputSystem;
 
 public class Test_00_PlayerState : TestBase
 {
+#if UNITY_EDITOR
     public Player player;
 
     protected override void OnTest1(InputAction.CallbackContext context)
@@ -19,4 +20,5 @@ public class Test_00_PlayerState : TestBase
     {
         player.Hp = player.MaxHp;
     }
+#endif
 }

@@ -16,6 +16,7 @@ public class PlayerHit : StateBase
 
     public override void StateExit()
     {
+        player.MoveStop();
     }
 
     public override void StateUpdate()

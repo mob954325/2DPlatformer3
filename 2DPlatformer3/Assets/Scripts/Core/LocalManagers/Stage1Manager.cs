@@ -17,7 +17,9 @@ public class Stage1Manager : MonoBehaviour
 
         for(int i = 1; i < enemyspawns.Length; i++)
         {
-            PoolManager.Instacne.Pop(PoolType.EnemyMelee, enemyspawns[i].position);
+            EnemyBase enemy = PoolManager.Instacne.Pop(PoolType.EnemyMelee, enemyspawns[i].position).GetComponent<EnemyBase>();
+            GameManager.Instacne.EnemyCount++;
+            enemy.OnDeadPerformed += () => { GameManager.Instacne.EnemyCount--; };
         }
     }
 }

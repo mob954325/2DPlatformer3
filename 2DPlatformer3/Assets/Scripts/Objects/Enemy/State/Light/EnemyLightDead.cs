@@ -10,6 +10,7 @@ public class EnemyLightDead : StateBase
 
     public override void StateEnter()
     {
+        enemyLight.MoveStop();
         enemyLight.PlayAnimation("Dead");
     }
 

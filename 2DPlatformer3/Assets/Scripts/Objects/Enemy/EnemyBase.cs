@@ -73,9 +73,7 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
         set
         {
             currentHp = Mathf.Clamp(value, 0f, MaxHp);
-            OnHpChange?.Invoke();
-
-            Debug.Log($"{gameObject.name} {Hp}");
+            OnHpChange?.Invoke(currentHp);
 
             if (IsDead)
             {
@@ -86,7 +84,7 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
 
     public bool IsDead => Hp <= 0;
 
-    public Action OnHpChange { get; set; }
+    public Action<float> OnHpChange { get; set; }
     public Action OnHitPerformed { get; set; }
     public Action OnDeadPerformed { get; set; }
     #endregion
@@ -335,6 +333,10 @@ public abstract class EnemyBase : MonoBehaviour, IAttacker, IDamageable, IPoolab
     {
         // 풀에서 디스폰 시 실행
         detectPlayer = null;
+        OnHpChange = null;
+        OnHitPerformed = null;
+        OnDeadPerformed = null;
+
         BeforeDespawn();
     }
 

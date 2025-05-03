@@ -71,6 +71,8 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     private float rollPower = 4f;
     private float jumpPower = 7f;
     private float speed = 3f;
+    private bool isImmnue = false; // 피격 가능 여부 ( true : 피격 가능, false : 피격 불가 )
+    public bool IsImmnue { get => isImmnue; set => isImmnue = value; }
 
     #region IAttackable
     private float attackDamage = 1f;
@@ -104,19 +106,17 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         set
         {
             currentHp = Mathf.Clamp(value, 0.0f, MaxHp);
-            OnHpChange?.Invoke();
+            OnHpChange?.Invoke(currentHp / maxHp);
 
             if(IsDead)
             {
                 OnDead();
             }
-
-            Debug.Log($"Player {Hp}");
         }
     }
 
     public bool IsDead => Hp <= 0f;
-    public Action OnHpChange { get; set; }
+    public Action<float> OnHpChange { get; set; }
     public Action OnHitPerformed { get; set; }
     public Action OnDeadPerformed { get; set; }
     #endregion
@@ -139,11 +139,6 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         {
             area.Initialize();
         }
-    }
-
-    private void OnEnable()
-    {
-        Initialize();
     }
 
     private void Update()
@@ -170,6 +165,8 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
 
     private void UpdatePlayerState()
     {
+        if (GameManager.Instacne.State != GameState.Play) return;
+
         CheckActionState();
         CheckMovementState();
     }
@@ -196,7 +193,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
 
     private void CheckMovementState()
     {
-        if (IsDead) return;
+        if (IsDead || ActionState == PlayerActionState.Hit) return;
 
         CheckMovementTransitionBlock();
 
@@ -208,6 +205,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
         {
             input.IsJump = false;
             MoveState = PlayerMovementState.Jump;
+            SoundManager.Instacne.PlaySound(SFXType.Jump);
         }
 
         if (MoveState != PlayerMovementState.Jump && MoveState != PlayerMovementState.Fall)
@@ -226,7 +224,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     }
     private void CheckMovementTransitionBlock()
     {
-        if (ActionState == PlayerActionState.Dead)
+        if (ActionState == PlayerActionState.Dead || ActionState == PlayerActionState.Hit)
             return; // 입력 무시
 
         if (ActionState != PlayerActionState.None)
@@ -276,6 +274,12 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     {
         animator.Play(name);
     }
+
+    public void PlaySound(SFXType type)
+    {
+        SoundManager.Instacne.PlaySound(type);
+    }
+
     #endregion
 
     #region Move
@@ -341,6 +345,8 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
                 OnAttack(target);
             }
         }
+
+        SoundManager.Instacne.PlaySound(SFXType.Attack);
     }
     #endregion
 
@@ -349,6 +355,12 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     {
         if (target == null) return;
 
+        MonoBehaviour mono = target as MonoBehaviour;
+        if(!target.IsDead)
+        {
+            PoolManager.Instacne.Pop(PoolType.HitFx, mono.transform.position + Vector3.up);
+            SoundManager.Instacne.PlaySound(SFXType.Hit);
+        }
         target.TakeDamage(AttackDamage);
     }
     #endregion
@@ -356,7 +368,7 @@ public class Player : MonoBehaviour, IAttacker, IDamageable
     #region IDamageable
     public void TakeDamage(float damageValue)
     {
-        if (IsDead) return;
+        if (IsDead || IsImmnue) return;
 
         ActionState = PlayerActionState.Hit;
         Hp -= damageValue;
